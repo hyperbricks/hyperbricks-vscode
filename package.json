@@ -44,7 +44,7 @@
   },
   "main": "./out/extension.js",
   "activationEvents": [
-    "onLanguage:hyperbricks",
+    "onLanguage:hyperbricks-yaml",
     "onCommand:hyperbricks.restartLanguageServer",
     "onCommand:hyperbricks.connectRuntimeDiagnostics",
     "onCommand:hyperbricks.disconnectRuntimeDiagnostics",
@@ -55,10 +55,10 @@
   "contributes": {
     "languages": [
       {
-        "id": "hyperbricks",
+        "id": "hyperbricks-yaml",
         "aliases": [
-          "HyperBricks",
-          "hyperbricks"
+          "HyperBricks YAML",
+          "hyperbricks-yaml"
         ],
         "extensions": [
           ".hyperbricks.yaml"
@@ -68,8 +68,8 @@
     ],
     "grammars": [
       {
-        "language": "hyperbricks",
-        "scopeName": "source.hyperbricks",
+        "language": "hyperbricks-yaml",
+        "scopeName": "source.hyperbricks-yaml",
         "path": "./syntaxes/hyperbricks.tmLanguage.json"
       }
     ],
@@ -122,9 +122,9 @@
         },
         "hyperbricks.module": {
           "type": "string",
-          "default": "default",
+          "default": "",
           "scope": "resource",
-          "markdownDescription": "Module name or directory passed to HyperBricks analysis, using the same selection contract as `hyperbricks doctor -m`."
+          "markdownDescription": "Module name or directory passed to HyperBricks analysis, using the same selection contract as `hyperbricks doctor -m`. Leave empty to select the nearest package owning the active HyperBricks file."
         },
         "hyperbricks.config": {
           "type": "string",
@@ -168,7 +168,7 @@
       }
     },
     "configurationDefaults": {
-      "[hyperbricks]": {
+      "[hyperbricks-yaml]": {
         "editor.defaultFormatter": "hyperbricks.hyperbricks-vscode"
       }
     }
@@ -190,6 +190,8 @@
     "@vscode/vsce": "^3.2.1",
     "esbuild": "^0.25.7",
     "typescript": "^5.7.2",
-    "vscode-languageclient": "^9.0.1"
+    "vscode-languageclient": "^9.0.1",
+    "vscode-oniguruma": "^2.0.1",
+    "vscode-textmate": "^9.3.2"
   }
 }

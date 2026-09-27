@@ -1,7 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
   "name": "HyperBricks",
-  "scopeName": "source.hyperbricks",
+  "scopeName": "source.hyperbricks-yaml",
   "patterns": [
     {
       "include": "#invalid-runtime-keys"
@@ -10,22 +10,40 @@
       "include": "#component-types"
     },
     {
+      "include": "#inheritance-entries"
+    },
+    {
+      "include": "#path-mapping-values"
+    },
+    {
+      "include": "#path-list-values"
+    },
+    {
       "include": "#reserved-entries"
+    },
+    {
+      "include": "#root-components"
     },
     {
       "include": "#resolver-keys"
     },
     {
-      "include": "#flow-resolver-keys"
+      "include": "#path-base-entries"
     },
     {
-      "include": "#path-bases"
+      "include": "#component-fields"
     },
     {
       "include": "#go-template"
     },
     {
-      "include": "source.yaml"
+      "include": "#flow-mapping"
+    },
+    {
+      "include": "#flow-sequence"
+    },
+    {
+      "include": "source.yaml.embedded"
     }
   ],
   "repository": {
@@ -62,6 +80,66 @@
         }
       }
     },
+    "inheritance-entries": {
+      "name": "meta.component.inheritance.hyperbricks",
+      "match": "^(\\s*)(-\\s*)?(inherit)(\\s*)(:)(\\s*)(['\\\"]?)([A-Za-z_][A-Za-z0-9_.\\[\\]-]*)(\\7)(?=\\s*(?:#.*)?$)",
+      "captures": {
+        "3": {
+          "name": "keyword.control.inherit.hyperbricks"
+        },
+        "5": {
+          "name": "punctuation.separator.key-value.mapping.yaml"
+        },
+        "7": {
+          "name": "punctuation.definition.string.begin.yaml"
+        },
+        "8": {
+          "name": "entity.other.inherited-class.hyperbricks"
+        },
+        "9": {
+          "name": "punctuation.definition.string.end.yaml"
+        }
+      }
+    },
+    "path-mapping-values": {
+      "name": "meta.mapping.path.hyperbricks",
+      "match": "^(\\s*)(-\\s*)?(file|path)(\\s*)(:)(\\s*)(['\\\"]?)([^\\s\\r\\n#'\\\"\\[{][^\\r\\n#'\\\"]*?)(\\7)(?=\\s*(?:#.*)?$)",
+      "captures": {
+        "3": {
+          "name": "entity.name.tag.yaml entity.name.tag.path.hyperbricks"
+        },
+        "5": {
+          "name": "punctuation.separator.key-value.mapping.yaml"
+        },
+        "7": {
+          "name": "punctuation.definition.string.begin.yaml"
+        },
+        "8": {
+          "name": "string.unquoted.path.hyperbricks"
+        },
+        "9": {
+          "name": "punctuation.definition.string.end.yaml"
+        }
+      }
+    },
+    "path-list-values": {
+      "name": "meta.sequence.path.hyperbricks",
+      "match": "^(\\s*)(-\\s+)(['\\\"]?)([^\\s#'\\\"][^#'\\\"]*?\\.(?:hyperbricks\\.ya?ml|ya?ml|html?|tmpl|gotmpl|md|markdown|css|m?js|ts|tsx|json|txt))(\\3)(?=\\s*(?:#.*)?$)",
+      "captures": {
+        "2": {
+          "name": "punctuation.definition.block.sequence.item.yaml"
+        },
+        "3": {
+          "name": "punctuation.definition.string.begin.yaml"
+        },
+        "4": {
+          "name": "string.unquoted.path.hyperbricks"
+        },
+        "5": {
+          "name": "punctuation.definition.string.end.yaml"
+        }
+      }
+    },
     "reserved-entries": {
       "name": "meta.mapping.key.reserved.hyperbricks",
       "match": "^(\\s*)(-\\s*)?(type|inherit|imports|vars)(\\s*)(:)",
@@ -74,24 +152,87 @@
         }
       }
     },
-    "resolver-keys": {
-      "name": "meta.mapping.key.resolver.hyperbricks",
-      "match": "^(\\s*)(-\\s*)?(var|env|config|path|file|format|args)(\\s*)(:)",
+    "root-components": {
+      "name": "meta.component.declaration.hyperbricks",
+      "match": "^(['\\\"]?)([A-Za-z_][A-Za-z0-9_.-]*)(\\1)(\\s*)(:)",
       "captures": {
+        "1": {
+          "name": "punctuation.definition.string.begin.yaml"
+        },
+        "2": {
+          "name": "entity.name.tag.yaml entity.name.tag.component.hyperbricks"
+        },
         "3": {
-          "name": "support.function.resolver.hyperbricks"
+          "name": "punctuation.definition.string.end.yaml"
         },
         "5": {
           "name": "punctuation.separator.key-value.mapping.yaml"
         }
       }
     },
+    "resolver-keys": {
+      "name": "meta.mapping.key.resolver.hyperbricks",
+      "match": "^(\\s*)(-\\s*)?(var|env|config|path|file|format|args)(\\s*)(:)",
+      "captures": {
+        "3": {
+          "name": "entity.name.tag.yaml entity.name.tag.resolver.hyperbricks"
+        },
+        "5": {
+          "name": "punctuation.separator.key-value.mapping.yaml"
+        }
+      }
+    },
+    "component-fields": {
+      "name": "meta.mapping.key.field.hyperbricks",
+      "match": "^(\\s+)(-\\s*)?(['\\\"]?)([A-Za-z_][A-Za-z0-9_.@-]*)(\\3)(\\s*)(:)",
+      "captures": {
+        "3": {
+          "name": "punctuation.definition.string.begin.yaml"
+        },
+        "4": {
+          "name": "entity.name.tag.yaml entity.name.tag.field.hyperbricks"
+        },
+        "5": {
+          "name": "punctuation.definition.string.end.yaml"
+        },
+        "7": {
+          "name": "punctuation.separator.key-value.mapping.yaml"
+        }
+      }
+    },
+    "path-base-entries": {
+      "name": "meta.resolver.path-base.block.hyperbricks",
+      "match": "^(\\s*)(-\\s*)?(base)(\\s*)(:)(\\s*)(module_root|root|module|resources|templates|static|hyperbricks|render)(?=\\s*(?:#.*)?$)",
+      "captures": {
+        "3": {
+          "name": "entity.name.tag.yaml entity.name.tag.resolver.hyperbricks"
+        },
+        "5": {
+          "name": "punctuation.separator.key-value.mapping.yaml"
+        },
+        "7": {
+          "name": "support.constant.path-base.hyperbricks"
+        }
+      }
+    },
     "flow-resolver-keys": {
       "name": "meta.mapping.key.resolver.flow.hyperbricks",
-      "match": "([,{]\\s*)(var|env|config|path|file|format|args)(\\s*)(:)",
+      "match": "(\\s*)(var|env|config|path|file|format|args)(\\s*)(:)",
       "captures": {
         "2": {
-          "name": "support.function.resolver.hyperbricks"
+          "name": "entity.name.tag.yaml entity.name.tag.resolver.hyperbricks"
+        },
+        "4": {
+          "name": "punctuation.separator.key-value.mapping.yaml"
+        }
+      }
+    },
+    "flow-field-keys": {
+      "name": "meta.mapping.key.field.flow.hyperbricks",
+      "match": "(\\s*)([A-Za-z_][A-Za-z0-9_.@-]*)(\\s*)(:)",
+      "captures": {
+        "2": {
+          "name": "entity.name.tag.yaml entity.name.tag.field.hyperbricks"
         },
         "4": {
           "name": "punctuation.separator.key-value.mapping.yaml"
@@ -103,12 +244,87 @@
       "match": "\\b(base)(\\s*:\\s*)(module_root|root|module|resources|templates|static|hyperbricks|render)\\b",
       "captures": {
         "1": {
-          "name": "variable.parameter.resolver.hyperbricks"
+          "name": "entity.name.tag.yaml entity.name.tag.resolver.hyperbricks"
         },
         "3": {
           "name": "support.constant.path-base.hyperbricks"
         }
       }
+    },
+    "flow-mapping": {
+      "name": "meta.flow.mapping.yaml meta.flow.mapping.hyperbricks",
+      "begin": "\\{",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.mapping.begin.yaml"
+        }
+      },
+      "end": "\\}",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.mapping.end.yaml"
+        }
+      },
+      "patterns": [
+        {
+          "include": "#go-template"
+        },
+        {
+          "include": "#flow-mapping"
+        },
+        {
+          "include": "#flow-sequence"
+        },
+        {
+          "include": "#path-bases"
+        },
+        {
+          "include": "#flow-resolver-keys"
+        },
+        {
+          "include": "#flow-field-keys"
+        },
+        {
+          "match": ",",
+          "name": "punctuation.separator.mapping.yaml"
+        },
+        {
+          "include": "source.yaml.1.2#flow-node"
+        }
+      ]
+    },
+    "flow-sequence": {
+      "name": "meta.flow.sequence.yaml meta.flow.sequence.hyperbricks",
+      "begin": "\\[",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.sequence.begin.yaml"
+        }
+      },
+      "end": "\\]",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.sequence.end.yaml"
+        }
+      },
+      "patterns": [
+        {
+          "include": "#go-template"
+        },
+        {
+          "include": "#flow-mapping"
+        },
+        {
+          "include": "#flow-sequence"
+        },
+        {
+          "match": ",",
+          "name": "punctuation.separator.sequence.yaml"
+        },
+        {
+          "include": "source.yaml.1.2#flow-node"
+        }
+      ]
     },
     "go-template": {
       "name": "meta.template.expression.hyperbricks",

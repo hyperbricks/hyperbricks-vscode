@@ -1,21 +1,28 @@
 # HyperBricks for Visual Studio Code
 
 HyperBricks language support backed by the language server in the HyperBricks
-executable. The extension provides:
+executable.
 
-- source and project diagnostics in the Problems panel;
-- context-aware component, field, value, path, and inheritance completion;
-- hover and whole-document formatting when advertised by the selected language
-  server;
-- YAML-based TextMate highlighting for HyperBricks component types, reserved
-  entries, value resolvers, path bases, and Go-template expressions;
-- current runtime-render diagnostics and route coverage in the status bar; and
-- an integrated, read-only HyperBricks Doctor command.
+| Feature | How to use it | Result |
+| --- | --- | --- |
+| Highlighting | Open `*.hyperbricks.yaml` and select **HyperBricks YAML** when needed. | Theme-driven YAML scopes for declarations, native types, reserved fields, inheritance, resolvers, paths, and Go-template expressions. |
+| Static diagnostics | Edit an owned source, untitled HyperBricks buffer, or selected package file and inspect **Problems**. | Immediate YAML, native-schema, import, inheritance, and configuration feedback from unsaved buffers. |
+| Completion and snippets | Type normally or run **Trigger Suggest** in a type, field, `inherit`, resolver, template, or recognized local-path position. | Schema-backed suggestions plus effective dotted `inherit` paths across imports. |
+| Hover | Hover a native `type` value or schema-owned field. | Registry descriptions and, for fields, examples when available. Inherited components use their effective native type. |
+| Go to Definition | Press F12 or Cmd/Ctrl-click an import, `inherit`, `template.file`, or recognized local resource path. | Opens the effective declaration or actual file, including transitive imports and unsaved buffers. |
+| Formatting | Run **Format Document** or enable format-on-save separately. | Safe whole-document formatting that preserves ordered entries, mapping order, comments, scalar styles, and meaning. |
+| Module check | Run **HyperBricks: Run Module Check**. | Executes the saved-project Doctor check and writes the complete report to HyperBricks Output. |
+| Runtime feedback | Start a development/debug runtime and use automatic discovery or **Connect Runtime Diagnostics**. | Safely mapped runtime Problems, checked-route coverage in the status bar, and the Errors view when advertised. |
 
 The extension deliberately does not carry a second component schema. Semantic
 features come from the same parser and schema registry as the configured
 HyperBricks executable. The TextMate grammar contains only lexical tokens used
 for immediate highlighting before the language server is ready.
+
+Code suggestions here mean IntelliSense completions and snippets. The extension
+does not provide AI-generated code or Quick Fixes. Dotted object-path completion
+is specific to runtime-valid `inherit` references; ordinary mappings such as a
+template's `values` are not inheritance paths.
 
 ## Requirements
 
@@ -34,53 +41,70 @@ selected `package.hyperbricks.yaml` uses normal package-configuration data even
 though it shares that suffix; the language server selects the correct analysis
 mode from the configured package path and source directories.
 
+## Install and first use
+
+Use a VSIX and `hyperbricks` executable from the same revision. This extension
+is not currently installed from a marketplace.
+
+If you do not already have a VSIX, build one from this directory:
+
+```bash
+npm ci
+npm run package
+```
+
+1. Choose **Extensions: Install from VSIX...**, or run:
+
+   ```bash
+   code --install-extension path/to/hyperbricks-vscode-VERSION.vsix
+   ```
+
+2. Run **Developer: Reload Window**, open a trusted local HyperBricks workspace,
+   and open a `*.hyperbricks.yaml` file.
+3. Confirm that the language mode is **HyperBricks YAML**. If the status bar says
+   **select module**, configure the owner explicitly. Use **HyperBricks: Show
+   Output** to verify the selected module and package profile.
+4. Leave `hyperbricks.module` empty for automatic selection. Configure
+   `hyperbricks.executable` only when the matching executable is not available as
+   `hyperbricks` on `PATH` or a checkout-specific build should be used.
+5. Use **Problems** for live buffer feedback and **HyperBricks: Run Module
+   Check** for the complete saved-project report. Start the module in development
+   or debug mode when runtime feedback is needed.
+
 ## Settings
 
-| Setting | Default | Purpose |
+| Setting | Default | Change it when |
 | --- | --- | --- |
-| `hyperbricks.executable` | `hyperbricks` | Executable path used for the language server and Doctor. |
-| `hyperbricks.module` | `default` | Module name or directory, with the same selection rules as `doctor -m`. |
-| `hyperbricks.config` | `package.hyperbricks.yaml` | Package configuration path relative to the selected module. |
-| `hyperbricks.runtimeDiagnostics` | `auto` | `auto`, `on`, or `off` runtime-diagnostic behavior. |
-| `hyperbricks.runtimeUrl` | empty | Explicit HTTP(S) runtime base URL; the extension sends only its origin, while an empty value permits local discovery. |
-| `hyperbricks.trace.server` | `off` | LSP trace level: `off`, `messages`, or `verbose`. |
+| `hyperbricks.executable` | `hyperbricks` | The matching executable is not on `PATH`, or the workspace should use a checkout-specific build. |
+| `hyperbricks.module` | empty (automatic) | Automatic ownership cannot identify the intended module, or another module must be selected explicitly. |
+| `hyperbricks.config` | `package.hyperbricks.yaml` | The selected module uses a differently named package profile. |
+| `hyperbricks.runtimeDiagnostics` | `auto` | Runtime feedback must report unavailability (`on`) or must not connect automatically (`off`). |
+| `hyperbricks.runtimeUrl` | empty | The extension should use an explicit HTTP(S) runtime origin instead of local discovery. |
+| `hyperbricks.trace.server` | `off` | You need `messages` or `verbose` protocol tracing. |
 
-In `auto`, the language server connects automatically, using `runtimeUrl` when
-set or local discovery otherwise, and quietly skips profiles where diagnostics
-are unavailable. `on` uses the same target rules but reports unavailable
-profiles and configuration errors. `off` suppresses automatic connection while
-leaving the manual Connect command available when the URL setting is empty or
-valid. Before the language client starts, an explicit URL must use HTTP or HTTPS,
-include a host, and contain no username or password. The extension sends only
-the URL origin, discarding any path, query, or fragment. A malformed or
-credential-bearing value disables automatic and manual runtime connections
-without disabling static language features; clear it to restore local
-discovery. Discovery itself is limited to a local development/debug runtime; a
-remote URL is never inferred. Local runtime credentials are resolved by
-HyperBricks and are not written to extension logs or sent as diagnostic data.
-Protocol version 1 does not accept remote credentials; an explicit non-loopback
-URL is contacted without reusing the selected module's local account.
+Automatic module selection walks from the active HyperBricks file toward its
+workspace root and chooses the nearest directory containing the configured
+package file. Switching between modules in one repository restarts and scopes
+the language client to the newly selected package. If no safe owning package is
+found, the status bar asks for an explicit `hyperbricks.module`; the extension
+does not analyze the source against an unrelated fallback module.
 
-Protocol version 1 runs one language-server process for the active HyperBricks
-workspace folder. In a multi-root window, activating a HyperBricks document in
-another folder restarts the client against that folder before continuing its
-module analysis. Separate VS Code windows avoid that brief handoff when two
-modules need simultaneous language-server sessions.
+Detailed module-selection, runtime URL and authentication rules, multi-root
+behavior, diagnostic lifecycles, and troubleshooting live in the
+canonical `docs/VSCODE.md` guide from the same HyperBricks revision.
 
 ## Commands
 
 Open the Command Palette and run:
 
-- **HyperBricks: Restart Language Server**
-- **HyperBricks: Connect Runtime Diagnostics**
-- **HyperBricks: Disconnect Runtime Diagnostics**
-- **HyperBricks: Run Module Check**
-- **HyperBricks: Open Runtime Errors** (when the development dashboard is enabled)
-- **HyperBricks: Show Output**
-
-The module check runs `hyperbricks doctor --module <module> --config <config>`
-as a read-only child process and writes its complete output to the HyperBricks
-output channel.
+| Command | Use it when | Result or availability |
+| --- | --- | --- |
+| **HyperBricks: Restart Language Server** | Recovering from a server failure or manually reloading source intelligence. | Restarts the client with the current project settings. |
+| **HyperBricks: Connect Runtime Diagnostics** | Requesting a manual connection to a development or debug runtime. | Attempts the connection; the configured or discovered runtime must also be reachable, compatible, and authorized. |
+| **HyperBricks: Disconnect Runtime Diagnostics** | Temporarily stopping runtime feedback. | Leaves all static language features active. |
+| **HyperBricks: Run Module Check** | Checking the complete saved module and package profile. | Runs `hyperbricks doctor` and writes its full report to HyperBricks Output. |
+| **HyperBricks: Open Runtime Errors** | Inspecting rendered failures in the browser. | Opens the view when the connected runtime advertises it; otherwise explains why it is unavailable. |
+| **HyperBricks: Show Output** | Diagnosing executable, module, runtime, or protocol problems. | Opens the HyperBricks output channel. |
 
 ## Local development
 
@@ -103,26 +127,8 @@ To build an installable VSIX:
 npm run package
 ```
 
-The dependency-free contract tests validate the extension manifest, language
-registration, grammar, protocol identifiers, commands, and settings. Compiling
-additionally type-checks and bundles the TypeScript client.
-
-## Runtime feedback semantics
-
-Static diagnostics and runtime diagnostics remain separate diagnostic sources.
-The status count is the total number of current runtime issues, including
-warning and informational severities rather than only errors. An empty runtime-
-issue set does not prove the whole application is valid: only routes that have
-been requested are covered. When the runtime reports coverage, the status bar
-displays `checked/total` routes. If request contexts were evicted from the
-runtime snapshot, that gap is called out in the tooltip and output channel.
-
-Runtime issues without a safe workspace source location are not attached to a
-fabricated Problems entry. The extension writes their sanitized summaries to
-the HyperBricks output channel and repeats up to three in the status tooltip.
-The runtime's `__config` marker is attached only to the real selected package
-profile when that file exists inside the selected module.
-
-The runtime Errors command opens `/__hyperbricks/errors` only when the connected
-runtime advertises that dashboard-owned view. The HyperBricks developer
-interface may ask for the module's configured credentials in the browser.
+The contract tests validate the extension manifest, language registration,
+protocol identifiers, commands, and settings. A tokenizer test also loads the
+TextMate grammar and verifies that representative HyperBricks tokens receive
+their intended scopes throughout a document. Compiling additionally type-checks
+and bundles the TypeScript client.

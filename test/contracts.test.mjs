@@ -37,11 +37,16 @@ test("manifest registers the HyperBricks language and grammar", async () => {
   const [grammar] = manifest.contributes.grammars;
 
   assert.equal(manifest.main, "./out/extension.js");
-  assert.equal(language.id, "hyperbricks");
+  assert.equal(language.id, "hyperbricks-yaml");
   assert.deepEqual(language.extensions, [".hyperbricks.yaml"]);
   assert.equal(language.configuration, "./language-configuration.json");
-  assert.equal(grammar.language, "hyperbricks");
-  assert.equal(grammar.scopeName, "source.hyperbricks");
+  assert.equal(grammar.language, "hyperbricks-yaml");
+  assert.equal(grammar.scopeName, "source.hyperbricks-yaml");
+  assert.equal(
+    manifest.contributes.configurationDefaults["[hyperbricks-yaml]"]["editor.defaultFormatter"],
+    "hyperbricks.hyperbricks-vscode"
+  );
+  assert.equal("[hyperbricks]" in manifest.contributes.configurationDefaults, false);
 
   await access(path.join(extensionRoot, language.configuration));
   await access(path.join(extensionRoot, grammar.path));
@@ -63,7 +68,7 @@ test("manifest contributes and activates every public command", async () => {
   for (const command of expected) {
     assert.ok(manifest.activationEvents.includes(`onCommand:${command}`), `${command} must activate the extension`);
   }
-  assert.ok(manifest.activationEvents.includes("onLanguage:hyperbricks"));
+  assert.ok(manifest.activationEvents.includes("onLanguage:hyperbricks-yaml"));
 });
 
 test("manifest exposes the protocol initialization settings", async () => {
@@ -71,7 +76,7 @@ test("manifest exposes the protocol initialization settings", async () => {
   const properties = manifest.contributes.configuration.properties;
 
   assert.equal(properties["hyperbricks.executable"].default, "hyperbricks");
-  assert.equal(properties["hyperbricks.module"].default, "default");
+  assert.equal(properties["hyperbricks.module"].default, "");
   assert.equal(properties["hyperbricks.config"].default, "package.hyperbricks.yaml");
   assert.deepEqual(properties["hyperbricks.runtimeDiagnostics"].enum, ["auto", "on", "off"]);
   assert.equal(properties["hyperbricks.runtimeUrl"].default, "");
@@ -122,6 +127,9 @@ test("runtime URL validation sends only safe origins and blocks unsafe connectio
 test("client pins protocol v1 and the agreed runtime methods", async () => {
   const source = await readFile(path.join(extensionRoot, "src/extension.ts"), "utf8");
 
+  assert.match(source, /const LANGUAGE_ID = "hyperbricks-yaml";/);
+  assert.doesNotMatch(source, /languageId\s*===\s*"hyperbricks"/);
+  assert.doesNotMatch(source, /language:\s*"hyperbricks"/);
   assert.match(source, /const PROTOCOL_VERSION = 1;/);
   assert.match(source, /hyperbricksProtocolVersion/);
   assert.match(source, /hyperbricks\/runtime\/connect/);
@@ -129,17 +137,19 @@ test("client pins protocol v1 and the agreed runtime methods", async () => {
   assert.match(source, /hyperbricks\/runtime\/status/);
   assert.match(source, /args: \["language-server", "--stdio"\]/);
   assert.match(source, /protocolVersion: PROTOCOL_VERSION/);
-  assert.match(
-    source,
-    /runtimeDiagnostics: settings\.runtimeUrl\.connectionBlocked \? "off" : settings\.runtimeDiagnostics/
-  );
+  assert.match(source, /settings\.runtimeUrl\.connectionBlocked \|\| settings\.moduleSelectionWarning !== undefined/);
+  assert.match(source, /\? "off"\s*:\s*settings\.runtimeDiagnostics/);
   assert.match(source, /runtimeUrl: settings\.runtimeUrl\.origin/);
   assert.doesNotMatch(source, /configurationSection/);
   assert.match(source, /dirtyDocuments: vscode\.workspace\.textDocuments/);
   assert.match(source, /document\.isDirty/);
+  assert.match(source, /language: LANGUAGE_ID/);
+  assert.match(source, /document\.languageId === LANGUAGE_ID/);
   assert.match(source, /uncheckedRoutes\?: string\[\]/);
-  assert.match(source, /new vscode\.RelativePattern\(folder, "\*\*\/\*\.hyperbricks\.yaml"\)/);
+  assert.match(source, /new vscode\.RelativePattern\(settings\.moduleRoot, "\*\*\/\*\.hyperbricks\.yaml"\)/);
   assert.match(source, /const ownsDocument = \(uri: vscode\.Uri\): boolean/);
+  assert.match(source, /pathIsWithin\(settings\.moduleRoot, uri\.fsPath\)/);
+  assert.match(source, /settings\.moduleSelectionIdentity/);
   for (const middleware of [
     "didOpen",
     "didChange",
@@ -147,6 +157,7 @@ test("client pins protocol v1 and the agreed runtime methods", async () => {
     "didClose",
     "provideCompletionItem",
     "provideHover",
+    "provideDefinition",
     "provideDocumentFormattingEdits"
   ]) {
     assert.match(source, new RegExp(`\\b${middleware}:`), `${middleware} must enforce active-folder ownership`);
@@ -183,8 +194,13 @@ test("client pins protocol v1 and the agreed runtime methods", async () => {
 
 test("TextMate grammar augments YAML with HyperBricks lexical scopes", async () => {
   const grammar = await readJSON("syntaxes/hyperbricks.tmLanguage.json");
-  assert.equal(grammar.scopeName, "source.hyperbricks");
-  assert.ok(grammar.patterns.some(({ include }) => include === "source.yaml"));
+  assert.equal(grammar.scopeName, "source.hyperbricks-yaml");
+  assert.ok(grammar.patterns.some(({ include }) => include === "source.yaml.embedded"));
+  assert.equal(
+    grammar.patterns.some(({ include }) => include === "source.yaml"),
+    false,
+    "the document-level YAML grammar would take ownership after the first token and hide later HyperBricks scopes"
+  );
 
   const repository = grammar.repository;
   assert.match(repository["invalid-runtime-keys"].match, /@type\|@order/);
@@ -201,6 +217,40 @@ test("TextMate grammar augments YAML with HyperBricks lexical scopes", async () 
   }
   for (const source of ["  - type: <NOT_REGISTERED>", "  - type: html-ish"]) {
     assert.doesNotMatch(source, componentTypePattern, `unknown component type must not receive a native scope: ${source}`);
+  }
+  assert.equal(
+    repository["root-components"].captures["2"].name,
+    "entity.name.tag.yaml entity.name.tag.component.hyperbricks"
+  );
+  assert.equal(repository["inheritance-entries"].captures["8"].name, "entity.other.inherited-class.hyperbricks");
+  assert.equal(repository["component-types"].captures["3"].name, "keyword.control.type.hyperbricks");
+  assert.equal(repository["inheritance-entries"].captures["3"].name, "keyword.control.inherit.hyperbricks");
+  assert.equal(repository["reserved-entries"].captures["3"].name, "keyword.control.hyperbricks");
+  assert.equal(
+    repository["component-fields"].captures["4"].name,
+    "entity.name.tag.yaml entity.name.tag.field.hyperbricks"
+  );
+  assert.equal(
+    repository["flow-field-keys"].captures["2"].name,
+    "entity.name.tag.yaml entity.name.tag.field.hyperbricks"
+  );
+  assert.equal(
+    repository["path-mapping-values"].captures["3"].name,
+    "entity.name.tag.yaml entity.name.tag.path.hyperbricks"
+  );
+  assert.equal(repository["path-mapping-values"].captures["8"].name, "string.unquoted.path.hyperbricks");
+  assert.equal(repository["path-list-values"].captures["4"].name, "string.unquoted.path.hyperbricks");
+  for (const [rule, capture] of [
+    ["resolver-keys", "3"],
+    ["path-base-entries", "3"],
+    ["flow-resolver-keys", "2"],
+    ["path-bases", "1"]
+  ]) {
+    assert.equal(
+      repository[rule].captures[capture].name,
+      "entity.name.tag.yaml entity.name.tag.resolver.hyperbricks",
+      `${rule} keys must retain the standard YAML property scope`
+    );
   }
   assert.match(repository["resolver-keys"].match, /var\|env\|config\|path\|file\|format\|args/);
   assert.match(repository["path-bases"].match, /module_root/);

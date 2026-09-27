@@ -6,8 +6,14 @@ import {
   type LanguageClientOptions,
   type ServerOptions
 } from "vscode-languageclient/node";
+import {
+  moduleSelectionIdentity,
+  pathIsWithin,
+  resolveModuleSelection
+} from "./module-selection";
 
 const PROTOCOL_VERSION = 1;
+const LANGUAGE_ID = "hyperbricks-yaml";
 const RUNTIME_CONNECT_METHOD = "hyperbricks/runtime/connect";
 const RUNTIME_DISCONNECT_METHOD = "hyperbricks/runtime/disconnect";
 const RUNTIME_STATUS_NOTIFICATION = "hyperbricks/runtime/status";
@@ -18,6 +24,9 @@ type ServerPhase = "stopped" | "starting" | "ready" | "incompatible" | "error";
 interface ExtensionSettings {
   executable: string;
   module: string;
+  moduleRoot?: string;
+  moduleSelectionWarning?: string;
+  moduleSelectionIdentity: string;
   config: string;
   runtimeDiagnostics: RuntimeDiagnosticsMode;
   runtimeUrl: RuntimeUrlSetting;
@@ -64,9 +73,10 @@ let lastLoggedEvictedContexts = 0;
 let serverPhase: ServerPhase = "stopped";
 let lifecycle = Promise.resolve();
 let restartTimer: ReturnType<typeof setTimeout> | undefined;
-let activeWorkspaceKey = "";
+let activeProjectKey = "";
 let doctorProcess: ChildProcessWithoutNullStreams | undefined;
 let runtimeUrlConnectionBlocked = false;
+let moduleSelectionWarning = "";
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   output = vscode.window.createOutputChannel("HyperBricks", { log: true });
@@ -109,13 +119,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       }
     }),
     vscode.window.onDidChangeActiveTextEditor((editor) => {
-      if (editor?.document.languageId !== "hyperbricks") {
+      if (editor?.document.languageId !== LANGUAGE_ID) {
         return;
       }
-      const nextKey = workspaceKey(workspaceFolderFor(editor.document.uri));
-      if (nextKey !== activeWorkspaceKey) {
+      const nextProject = selectProject(editor);
+      if (nextProject.key !== activeProjectKey) {
         runtimeUrlConnectionBlocked = readRuntimeUrlSetting(
-          workspaceFolderFor(editor.document.uri)?.uri
+          nextProject.folder?.uri
         ).connectionBlocked;
         scheduleRestart();
       }
@@ -163,9 +173,13 @@ function scheduleRestart(): void {
 }
 
 async function startLanguageClient(): Promise<void> {
-  const folder = selectedWorkspaceFolder();
-  const settings = readSettings(folder?.uri);
-  activeWorkspaceKey = workspaceKey(folder);
+  const project = selectProject(vscode.window.activeTextEditor);
+  const { folder, settings } = project;
+  activeProjectKey = project.key;
+  moduleSelectionWarning = settings.moduleSelectionWarning ?? "";
+  if (moduleSelectionWarning !== "") {
+    output.warn(moduleSelectionWarning);
+  }
   runtimeUrlConnectionBlocked = settings.runtimeUrl.connectionBlocked;
   runtimeStatus = undefined;
   lastLoggedRuntimeError = "";
@@ -181,32 +195,48 @@ async function startLanguageClient(): Promise<void> {
   };
 
   const sourcePattern =
-    folder === undefined
+    settings.moduleRoot !== undefined
+      ? new vscode.RelativePattern(settings.moduleRoot, "**/*.hyperbricks.yaml")
+      : folder === undefined
       ? "**/*.hyperbricks.yaml"
       : new vscode.RelativePattern(folder, "**/*.hyperbricks.yaml");
   sourceWatcher = vscode.workspace.createFileSystemWatcher(sourcePattern);
-  const ownsDocument = (uri: vscode.Uri): boolean =>
-    uri.scheme !== "file" ||
-    folder === undefined ||
-    workspaceFolderFor(uri)?.uri.toString() === folder.uri.toString();
+  const ownsDocument = (uri: vscode.Uri): boolean => {
+    if (uri.scheme === "untitled") {
+      return true;
+    }
+    if (uri.scheme !== "file") {
+      return false;
+    }
+    if (settings.moduleSelectionWarning !== undefined) {
+      return false;
+    }
+    if (settings.moduleRoot !== undefined) {
+      return pathIsWithin(settings.moduleRoot, uri.fsPath);
+    }
+    return folder === undefined || workspaceFolderFor(uri)?.uri.toString() === folder.uri.toString();
+  };
   const clientOptions: LanguageClientOptions = {
     documentSelector: [
-      { language: "hyperbricks", scheme: "file" },
-      { language: "hyperbricks", scheme: "untitled" }
+      { language: LANGUAGE_ID, scheme: "file" },
+      { language: LANGUAGE_ID, scheme: "untitled" }
     ],
     workspaceFolder: folder,
     initializationOptions: {
       protocolVersion: PROTOCOL_VERSION,
       module: settings.module,
       config: settings.config,
-      runtimeDiagnostics: settings.runtimeUrl.connectionBlocked ? "off" : settings.runtimeDiagnostics,
+      runtimeDiagnostics:
+        settings.runtimeUrl.connectionBlocked || settings.moduleSelectionWarning !== undefined
+          ? "off"
+          : settings.runtimeDiagnostics,
       runtimeUrl: settings.runtimeUrl.origin,
       dirtyDocuments: vscode.workspace.textDocuments
         .filter(
           (document) =>
-            document.languageId === "hyperbricks" &&
+            document.languageId === LANGUAGE_ID &&
             document.isDirty &&
-            (folder === undefined || workspaceFolderFor(document.uri)?.uri.toString() === folder.uri.toString())
+            ownsDocument(document.uri)
         )
         .map((document) => document.uri.toString())
     },
@@ -225,6 +255,8 @@ async function startLanguageClient(): Promise<void> {
       provideCompletionItem: (document, position, context, token, next) =>
         ownsDocument(document.uri) ? next(document, position, context, token) : null,
       provideHover: (document, position, token, next) =>
+        ownsDocument(document.uri) ? next(document, position, token) : null,
+      provideDefinition: (document, position, token, next) =>
         ownsDocument(document.uri) ? next(document, position, token) : null,
       provideDocumentFormattingEdits: (document, options, token, next) =>
         ownsDocument(document.uri) ? next(document, options, token) : []
@@ -314,7 +346,7 @@ async function startLanguageClient(): Promise<void> {
   serverPhase = "ready";
   updateStatus();
   output.info(
-    `HyperBricks language server ready (protocol ${PROTOCOL_VERSION}, module ${settings.module}, config ${settings.config}).`
+    `HyperBricks language server ready (protocol ${PROTOCOL_VERSION}, module ${settings.module}${settings.moduleSelectionWarning === undefined ? "" : " fallback"}, config ${settings.config}).`
   );
 }
 
@@ -344,6 +376,10 @@ async function stopLanguageClient(): Promise<void> {
 }
 
 async function requestRuntimeState(method: string, verb: "connect" | "disconnect"): Promise<void> {
+  if (verb === "connect" && moduleSelectionWarning !== "") {
+    void vscode.window.showWarningMessage(moduleSelectionWarning);
+    return;
+  }
   if (verb === "connect" && runtimeUrlConnectionBlocked) {
     void vscode.window.showWarningMessage(
       "The configured HyperBricks runtime URL cannot be used. Set an http or https URL without embedded credentials, or clear it to use local discovery."
@@ -427,8 +463,12 @@ async function runModuleCheck(): Promise<void> {
     return;
   }
 
-  const folder = selectedWorkspaceFolder();
-  const settings = readSettings(folder?.uri);
+  const { folder, settings } = selectProject(vscode.window.activeTextEditor);
+  if (settings.moduleSelectionWarning !== undefined) {
+    output.warn(settings.moduleSelectionWarning);
+    void vscode.window.showWarningMessage(settings.moduleSelectionWarning);
+    return;
+  }
   const args = ["doctor", "--module", settings.module, "--config", settings.config];
   output.info(`Running HyperBricks Doctor for module ${settings.module} (${settings.config}).`);
   output.show(true);
@@ -559,6 +599,12 @@ function updateStatus(detail?: string): void {
     return;
   }
 
+  if (moduleSelectionWarning !== "") {
+    status.text = "$(warning) HyperBricks: select module";
+    status.tooltip = moduleSelectionWarning;
+    return;
+  }
+
   const errorCount = finiteNumber(runtimeStatus?.errorCount);
   const checked = finiteNumber(runtimeStatus?.checkedRoutes);
   const total = finiteNumber(runtimeStatus?.totalRoutes);
@@ -605,15 +651,25 @@ function updateStatus(detail?: string): void {
       : runtimeStatusTooltip("HyperBricks language server ready");
 }
 
-function readSettings(resource?: vscode.Uri): ExtensionSettings {
+function readSettings(resource?: vscode.Uri, document?: vscode.Uri): ExtensionSettings {
   const configuration = vscode.workspace.getConfiguration("hyperbricks", resource);
   const configuredMode = configuration.get<string>("runtimeDiagnostics", "auto");
   const runtimeDiagnostics: RuntimeDiagnosticsMode =
     configuredMode === "on" || configuredMode === "off" ? configuredMode : "auto";
+  const config = cleanString(configuration.get<string>("config")) ?? "package.hyperbricks.yaml";
+  const moduleSelection = resolveModuleSelection({
+    workspacePath: resource?.scheme === "file" ? resource.fsPath : undefined,
+    documentPath: document?.scheme === "file" ? document.fsPath : undefined,
+    configuredModule: cleanString(configuration.get<string>("module")) ?? "",
+    configuredConfig: config
+  });
   return {
     executable: cleanString(configuration.get<string>("executable")) ?? "hyperbricks",
-    module: cleanString(configuration.get<string>("module")) ?? "default",
-    config: cleanString(configuration.get<string>("config")) ?? "package.hyperbricks.yaml",
+    module: moduleSelection.module,
+    moduleRoot: moduleSelection.moduleRoot,
+    moduleSelectionWarning: moduleSelection.warning,
+    moduleSelectionIdentity: moduleSelectionIdentity(moduleSelection, config),
+    config,
     runtimeDiagnostics,
     runtimeUrl: validateRuntimeUrlSetting(configuration.get<string>("runtimeUrl", ""))
   };
@@ -646,9 +702,8 @@ function validateRuntimeUrlSetting(raw = "") {
   }
 }
 
-function selectedWorkspaceFolder(): vscode.WorkspaceFolder | undefined {
-  const active = vscode.window.activeTextEditor;
-  if (active?.document.languageId === "hyperbricks") {
+function selectedWorkspaceFolder(active = vscode.window.activeTextEditor): vscode.WorkspaceFolder | undefined {
+  if (active?.document.languageId === LANGUAGE_ID) {
     const folder = workspaceFolderFor(active.document.uri);
     if (folder !== undefined) {
       return folder;
@@ -661,8 +716,20 @@ function workspaceFolderFor(uri: vscode.Uri): vscode.WorkspaceFolder | undefined
   return uri.scheme === "file" ? vscode.workspace.getWorkspaceFolder(uri) : undefined;
 }
 
-function workspaceKey(folder: vscode.WorkspaceFolder | undefined): string {
-  return folder?.uri.toString() ?? "";
+function selectProject(active: vscode.TextEditor | undefined): {
+  folder: vscode.WorkspaceFolder | undefined;
+  settings: ExtensionSettings;
+  key: string;
+} {
+  const folder = selectedWorkspaceFolder(active);
+  const document =
+    active?.document.languageId === LANGUAGE_ID ? active.document.uri : undefined;
+  const settings = readSettings(folder?.uri, document);
+  return {
+    folder,
+    settings,
+    key: `${folder?.uri.toString() ?? ""}\u0000${settings.moduleSelectionIdentity}`
+  };
 }
 
 function cleanString(value: string | undefined): string | undefined {
