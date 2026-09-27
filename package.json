@@ -1,0 +1,195 @@
+{
+  "name": "hyperbricks-vscode",
+  "displayName": "HyperBricks",
+  "description": "HyperBricks DSL diagnostics, completion, formatting, highlighting, and runtime feedback.",
+  "version": "0.1.0",
+  "publisher": "hyperbricks",
+  "license": "MIT",
+  "homepage": "https://github.com/hyperbricks/hyperbricks#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hyperbricks/hyperbricks.git",
+    "directory": "editors/vscode"
+  },
+  "bugs": {
+    "url": "https://github.com/hyperbricks/hyperbricks/issues"
+  },
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Linters",
+    "Formatters"
+  ],
+  "keywords": [
+    "hyperbricks",
+    "yaml",
+    "dsl",
+    "lsp",
+    "hypermedia"
+  ],
+  "extensionKind": [
+    "workspace"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": false,
+      "description": "The extension starts the configured HyperBricks executable and therefore requires a trusted workspace."
+    },
+    "virtualWorkspaces": {
+      "supported": false,
+      "description": "HyperBricks language analysis requires a local module and runtime files."
+    }
+  },
+  "main": "./out/extension.js",
+  "activationEvents": [
+    "onLanguage:hyperbricks",
+    "onCommand:hyperbricks.restartLanguageServer",
+    "onCommand:hyperbricks.connectRuntimeDiagnostics",
+    "onCommand:hyperbricks.disconnectRuntimeDiagnostics",
+    "onCommand:hyperbricks.runModuleCheck",
+    "onCommand:hyperbricks.openRuntimeErrors",
+    "onCommand:hyperbricks.showOutput"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "hyperbricks",
+        "aliases": [
+          "HyperBricks",
+          "hyperbricks"
+        ],
+        "extensions": [
+          ".hyperbricks.yaml"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "hyperbricks",
+        "scopeName": "source.hyperbricks",
+        "path": "./syntaxes/hyperbricks.tmLanguage.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "hyperbricks.restartLanguageServer",
+        "title": "Restart Language Server",
+        "category": "HyperBricks",
+        "icon": "$(debug-restart)"
+      },
+      {
+        "command": "hyperbricks.connectRuntimeDiagnostics",
+        "title": "Connect Runtime Diagnostics",
+        "category": "HyperBricks",
+        "icon": "$(plug)"
+      },
+      {
+        "command": "hyperbricks.disconnectRuntimeDiagnostics",
+        "title": "Disconnect Runtime Diagnostics",
+        "category": "HyperBricks",
+        "icon": "$(debug-disconnect)"
+      },
+      {
+        "command": "hyperbricks.runModuleCheck",
+        "title": "Run Module Check",
+        "category": "HyperBricks",
+        "icon": "$(check-all)"
+      },
+      {
+        "command": "hyperbricks.openRuntimeErrors",
+        "title": "Open Runtime Errors",
+        "category": "HyperBricks",
+        "icon": "$(open-preview)"
+      },
+      {
+        "command": "hyperbricks.showOutput",
+        "title": "Show Output",
+        "category": "HyperBricks",
+        "icon": "$(output)"
+      }
+    ],
+    "configuration": {
+      "title": "HyperBricks",
+      "properties": {
+        "hyperbricks.executable": {
+          "type": "string",
+          "default": "hyperbricks",
+          "scope": "machine-overridable",
+          "markdownDescription": "Path to the HyperBricks executable. It must provide the `language-server --stdio` command."
+        },
+        "hyperbricks.module": {
+          "type": "string",
+          "default": "default",
+          "scope": "resource",
+          "markdownDescription": "Module name or directory passed to HyperBricks analysis, using the same selection contract as `hyperbricks doctor -m`."
+        },
+        "hyperbricks.config": {
+          "type": "string",
+          "default": "package.hyperbricks.yaml",
+          "scope": "resource",
+          "markdownDescription": "Package configuration path relative to the selected module."
+        },
+        "hyperbricks.runtimeDiagnostics": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "on",
+            "off"
+          ],
+          "enumDescriptions": [
+            "Connect automatically, using `runtimeUrl` when set or local discovery otherwise; quietly skip profiles where diagnostics are unavailable.",
+            "Connect automatically like `auto`, but report unavailable profiles and configuration errors.",
+            "Do not connect automatically; the manual Connect Runtime Diagnostics command remains available."
+          ],
+          "default": "auto",
+          "scope": "resource",
+          "markdownDescription": "Controls authenticated diagnostics from a running HyperBricks development or debug runtime."
+        },
+        "hyperbricks.runtimeUrl": {
+          "type": "string",
+          "default": "",
+          "scope": "resource",
+          "markdownDescription": "Explicit runtime base URL. Leave empty for local runtime discovery. Remote connections are never inferred automatically."
+        },
+        "hyperbricks.trace.server": {
+          "type": "string",
+          "enum": [
+            "off",
+            "messages",
+            "verbose"
+          ],
+          "default": "off",
+          "scope": "window",
+          "description": "Traces communication between VS Code and the HyperBricks language server."
+        }
+      }
+    },
+    "configurationDefaults": {
+      "[hyperbricks]": {
+        "editor.defaultFormatter": "hyperbricks.hyperbricks-vscode"
+      }
+    }
+  },
+  "scripts": {
+    "clean": "node ./scripts/clean.mjs",
+    "typecheck": "tsc --noEmit",
+    "bundle": "node ./esbuild.mjs",
+    "compile": "npm run typecheck && npm run bundle",
+    "watch": "node ./esbuild.mjs --watch",
+    "test": "node --test ./test/*.test.mjs",
+    "check": "npm test && npm run compile",
+    "vscode:prepublish": "npm run compile",
+    "package": "npm run compile && vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.1",
+    "@types/vscode": "^1.95.0",
+    "@vscode/vsce": "^3.2.1",
+    "esbuild": "^0.25.7",
+    "typescript": "^5.7.2",
+    "vscode-languageclient": "^9.0.1"
+  }
+}

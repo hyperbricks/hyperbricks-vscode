@@ -1,0 +1,143 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "HyperBricks",
+  "scopeName": "source.hyperbricks",
+  "patterns": [
+    {
+      "include": "#invalid-runtime-keys"
+    },
+    {
+      "include": "#component-types"
+    },
+    {
+      "include": "#reserved-entries"
+    },
+    {
+      "include": "#resolver-keys"
+    },
+    {
+      "include": "#flow-resolver-keys"
+    },
+    {
+      "include": "#path-bases"
+    },
+    {
+      "include": "#go-template"
+    },
+    {
+      "include": "source.yaml"
+    }
+  ],
+  "repository": {
+    "invalid-runtime-keys": {
+      "name": "meta.mapping.key.runtime-reserved.hyperbricks",
+      "match": "^(\\s*)(-\\s*)?(@type|@order)(\\s*)(:)",
+      "captures": {
+        "3": {
+          "name": "invalid.illegal.runtime-key.hyperbricks"
+        },
+        "5": {
+          "name": "punctuation.separator.key-value.mapping.yaml"
+        }
+      }
+    },
+    "component-types": {
+      "name": "meta.component.type.hyperbricks",
+      "match": "^(\\s*)(-\\s*)?(type)(\\s*)(:)(\\s*)(['\\\"]?)((?:<(?:HYPERMEDIA|FRAGMENT|API_RENDER|API_FRAGMENT_RENDER|TREE|HEAD|TEMPLATE|HTML|TEXT|CSS|JAVASCRIPT|JS|IMAGE|IMAGES|JSON|JSON_RENDER|MENU|PLUGIN|STYLES|MARKDOWN|GOJA_RENDER|ESBUILD)>|(?:hypermedia|fragment|api_render|api_fragment_render|tree|head|template|html|text|css|javascript|js|image|images|json|json_render|menu|plugin|styles|markdown|goja_render|esbuild)))(\\7)(?=\\s*(?:#.*)?$)",
+      "captures": {
+        "3": {
+          "name": "keyword.control.type.hyperbricks"
+        },
+        "5": {
+          "name": "punctuation.separator.key-value.mapping.yaml"
+        },
+        "7": {
+          "name": "punctuation.definition.string.begin.yaml"
+        },
+        "8": {
+          "name": "support.type.component.hyperbricks"
+        },
+        "9": {
+          "name": "punctuation.definition.string.end.yaml"
+        }
+      }
+    },
+    "reserved-entries": {
+      "name": "meta.mapping.key.reserved.hyperbricks",
+      "match": "^(\\s*)(-\\s*)?(type|inherit|imports|vars)(\\s*)(:)",
+      "captures": {
+        "3": {
+          "name": "keyword.control.hyperbricks"
+        },
+        "5": {
+          "name": "punctuation.separator.key-value.mapping.yaml"
+        }
+      }
+    },
+    "resolver-keys": {
+      "name": "meta.mapping.key.resolver.hyperbricks",
+      "match": "^(\\s*)(-\\s*)?(var|env|config|path|file|format|args)(\\s*)(:)",
+      "captures": {
+        "3": {
+          "name": "support.function.resolver.hyperbricks"
+        },
+        "5": {
+          "name": "punctuation.separator.key-value.mapping.yaml"
+        }
+      }
+    },
+    "flow-resolver-keys": {
+      "name": "meta.mapping.key.resolver.flow.hyperbricks",
+      "match": "([,{]\\s*)(var|env|config|path|file|format|args)(\\s*)(:)",
+      "captures": {
+        "2": {
+          "name": "support.function.resolver.hyperbricks"
+        },
+        "4": {
+          "name": "punctuation.separator.key-value.mapping.yaml"
+        }
+      }
+    },
+    "path-bases": {
+      "name": "meta.resolver.path-base.hyperbricks",
+      "match": "\\b(base)(\\s*:\\s*)(module_root|root|module|resources|templates|static|hyperbricks|render)\\b",
+      "captures": {
+        "1": {
+          "name": "variable.parameter.resolver.hyperbricks"
+        },
+        "3": {
+          "name": "support.constant.path-base.hyperbricks"
+        }
+      }
+    },
+    "go-template": {
+      "name": "meta.template.expression.hyperbricks",
+      "begin": "\\{\\{-?",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.template.begin.hyperbricks"
+        }
+      },
+      "end": "-?\\}\\}",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.template.end.hyperbricks"
+        }
+      },
+      "patterns": [
+        {
+          "match": "\\b(if|else|end|range|with|template|block|define)\\b",
+          "name": "keyword.control.template.hyperbricks"
+        },
+        {
+          "match": "\\.[A-Za-z_][A-Za-z0-9_.]*",
+          "name": "variable.other.template.hyperbricks"
+        },
+        {
+          "match": "\\$[A-Za-z_][A-Za-z0-9_]*",
+          "name": "variable.other.template.hyperbricks"
+        }
+      ]
+    }
+  }
+}
