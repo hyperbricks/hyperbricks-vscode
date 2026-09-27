@@ -2,329 +2,141 @@
   "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
   "name": "HyperBricks",
   "scopeName": "source.hyperbricks-yaml",
+  "comment": "YAML owns indentation, mappings, quoting, comments and scalar boundaries. HyperBricks injections only decorate keys and values after YAML has classified them; schema-aware distinctions come from semantic tokens.",
   "patterns": [
     {
-      "include": "#invalid-runtime-keys"
-    },
-    {
-      "include": "#component-types"
-    },
-    {
-      "include": "#inheritance-entries"
-    },
-    {
-      "include": "#path-mapping-values"
-    },
-    {
-      "include": "#path-list-values"
-    },
-    {
-      "include": "#reserved-entries"
-    },
-    {
-      "include": "#root-components"
-    },
-    {
-      "include": "#resolver-keys"
-    },
-    {
-      "include": "#path-base-entries"
-    },
-    {
-      "include": "#component-fields"
-    },
-    {
-      "include": "#go-template"
-    },
-    {
-      "include": "#flow-mapping"
-    },
-    {
-      "include": "#flow-sequence"
-    },
-    {
-      "include": "source.yaml.embedded"
+      "include": "source.yaml"
     }
   ],
-  "repository": {
-    "invalid-runtime-keys": {
-      "name": "meta.mapping.key.runtime-reserved.hyperbricks",
-      "match": "^(\\s*)(-\\s*)?(@type|@order)(\\s*)(:)",
-      "captures": {
-        "3": {
-          "name": "invalid.illegal.runtime-key.hyperbricks"
-        },
-        "5": {
-          "name": "punctuation.separator.key-value.mapping.yaml"
-        }
-      }
-    },
-    "component-types": {
-      "name": "meta.component.type.hyperbricks",
-      "match": "^(\\s*)(-\\s*)?(type)(\\s*)(:)(\\s*)(['\\\"]?)((?:<(?:HYPERMEDIA|FRAGMENT|API_RENDER|API_FRAGMENT_RENDER|TREE|HEAD|TEMPLATE|HTML|TEXT|CSS|JAVASCRIPT|JS|IMAGE|IMAGES|JSON|JSON_RENDER|MENU|PLUGIN|STYLES|MARKDOWN|GOJA_RENDER|ESBUILD)>|(?:hypermedia|fragment|api_render|api_fragment_render|tree|head|template|html|text|css|javascript|js|image|images|json|json_render|menu|plugin|styles|markdown|goja_render|esbuild)))(\\7)(?=\\s*(?:#.*)?$)",
-      "captures": {
-        "3": {
-          "name": "keyword.control.type.hyperbricks"
-        },
-        "5": {
-          "name": "punctuation.separator.key-value.mapping.yaml"
-        },
-        "7": {
-          "name": "punctuation.definition.string.begin.yaml"
-        },
-        "8": {
-          "name": "support.type.component.hyperbricks"
-        },
-        "9": {
-          "name": "punctuation.definition.string.end.yaml"
-        }
-      }
-    },
-    "inheritance-entries": {
-      "name": "meta.component.inheritance.hyperbricks",
-      "match": "^(\\s*)(-\\s*)?(inherit)(\\s*)(:)(\\s*)(['\\\"]?)([A-Za-z_][A-Za-z0-9_.\\[\\]-]*)(\\7)(?=\\s*(?:#.*)?$)",
-      "captures": {
-        "3": {
-          "name": "keyword.control.inherit.hyperbricks"
-        },
-        "5": {
-          "name": "punctuation.separator.key-value.mapping.yaml"
-        },
-        "7": {
-          "name": "punctuation.definition.string.begin.yaml"
-        },
-        "8": {
-          "name": "entity.other.inherited-class.hyperbricks"
-        },
-        "9": {
-          "name": "punctuation.definition.string.end.yaml"
-        }
-      }
-    },
-    "path-mapping-values": {
-      "name": "meta.mapping.path.hyperbricks",
-      "match": "^(\\s*)(-\\s*)?(file|path)(\\s*)(:)(\\s*)(['\\\"]?)([^\\s\\r\\n#'\\\"\\[{][^\\r\\n#'\\\"]*?)(\\7)(?=\\s*(?:#.*)?$)",
-      "captures": {
-        "3": {
-          "name": "entity.name.tag.yaml entity.name.tag.path.hyperbricks"
-        },
-        "5": {
-          "name": "punctuation.separator.key-value.mapping.yaml"
-        },
-        "7": {
-          "name": "punctuation.definition.string.begin.yaml"
-        },
-        "8": {
-          "name": "string.unquoted.path.hyperbricks"
-        },
-        "9": {
-          "name": "punctuation.definition.string.end.yaml"
-        }
-      }
-    },
-    "path-list-values": {
-      "name": "meta.sequence.path.hyperbricks",
-      "match": "^(\\s*)(-\\s+)(['\\\"]?)([^\\s#'\\\"][^#'\\\"]*?\\.(?:hyperbricks\\.ya?ml|ya?ml|html?|tmpl|gotmpl|md|markdown|css|m?js|ts|tsx|json|txt))(\\3)(?=\\s*(?:#.*)?$)",
-      "captures": {
-        "2": {
-          "name": "punctuation.definition.block.sequence.item.yaml"
-        },
-        "3": {
-          "name": "punctuation.definition.string.begin.yaml"
-        },
-        "4": {
-          "name": "string.unquoted.path.hyperbricks"
-        },
-        "5": {
-          "name": "punctuation.definition.string.end.yaml"
-        }
-      }
-    },
-    "reserved-entries": {
-      "name": "meta.mapping.key.reserved.hyperbricks",
-      "match": "^(\\s*)(-\\s*)?(type|inherit|imports|vars)(\\s*)(:)",
-      "captures": {
-        "3": {
-          "name": "keyword.control.hyperbricks"
-        },
-        "5": {
-          "name": "punctuation.separator.key-value.mapping.yaml"
-        }
-      }
-    },
-    "root-components": {
-      "name": "meta.component.declaration.hyperbricks",
-      "match": "^(['\\\"]?)([A-Za-z_][A-Za-z0-9_.-]*)(\\1)(\\s*)(:)",
-      "captures": {
-        "1": {
-          "name": "punctuation.definition.string.begin.yaml"
-        },
-        "2": {
-          "name": "entity.name.tag.yaml entity.name.tag.component.hyperbricks"
-        },
-        "3": {
-          "name": "punctuation.definition.string.end.yaml"
-        },
-        "5": {
-          "name": "punctuation.separator.key-value.mapping.yaml"
-        }
-      }
-    },
-    "resolver-keys": {
-      "name": "meta.mapping.key.resolver.hyperbricks",
-      "match": "^(\\s*)(-\\s*)?(var|env|config|path|file|format|args)(\\s*)(:)",
-      "captures": {
-        "3": {
-          "name": "entity.name.tag.yaml entity.name.tag.resolver.hyperbricks"
-        },
-        "5": {
-          "name": "punctuation.separator.key-value.mapping.yaml"
-        }
-      }
-    },
-    "component-fields": {
-      "name": "meta.mapping.key.field.hyperbricks",
-      "match": "^(\\s+)(-\\s*)?(['\\\"]?)([A-Za-z_][A-Za-z0-9_.@-]*)(\\3)(\\s*)(:)",
-      "captures": {
-        "3": {
-          "name": "punctuation.definition.string.begin.yaml"
-        },
-        "4": {
-          "name": "entity.name.tag.yaml entity.name.tag.field.hyperbricks"
-        },
-        "5": {
-          "name": "punctuation.definition.string.end.yaml"
-        },
-        "7": {
-          "name": "punctuation.separator.key-value.mapping.yaml"
-        }
-      }
-    },
-    "path-base-entries": {
-      "name": "meta.resolver.path-base.block.hyperbricks",
-      "match": "^(\\s*)(-\\s*)?(base)(\\s*)(:)(\\s*)(module_root|root|module|resources|templates|static|hyperbricks|render)(?=\\s*(?:#.*)?$)",
-      "captures": {
-        "3": {
-          "name": "entity.name.tag.yaml entity.name.tag.resolver.hyperbricks"
-        },
-        "5": {
-          "name": "punctuation.separator.key-value.mapping.yaml"
-        },
-        "7": {
-          "name": "support.constant.path-base.hyperbricks"
-        }
-      }
-    },
-    "flow-resolver-keys": {
-      "name": "meta.mapping.key.resolver.flow.hyperbricks",
-      "match": "(\\s*)(var|env|config|path|file|format|args)(\\s*)(:)",
-      "captures": {
-        "2": {
-          "name": "entity.name.tag.yaml entity.name.tag.resolver.hyperbricks"
-        },
-        "4": {
-          "name": "punctuation.separator.key-value.mapping.yaml"
-        }
-      }
-    },
-    "flow-field-keys": {
-      "name": "meta.mapping.key.field.flow.hyperbricks",
-      "match": "(\\s*)([A-Za-z_][A-Za-z0-9_.@-]*)(\\s*)(:)",
-      "captures": {
-        "2": {
-          "name": "entity.name.tag.yaml entity.name.tag.field.hyperbricks"
-        },
-        "4": {
-          "name": "punctuation.separator.key-value.mapping.yaml"
-        }
-      }
-    },
-    "path-bases": {
-      "name": "meta.resolver.path-base.hyperbricks",
-      "match": "\\b(base)(\\s*:\\s*)(module_root|root|module|resources|templates|static|hyperbricks|render)\\b",
-      "captures": {
-        "1": {
-          "name": "entity.name.tag.yaml entity.name.tag.resolver.hyperbricks"
-        },
-        "3": {
-          "name": "support.constant.path-base.hyperbricks"
-        }
-      }
-    },
-    "flow-mapping": {
-      "name": "meta.flow.mapping.yaml meta.flow.mapping.hyperbricks",
-      "begin": "\\{",
-      "beginCaptures": {
-        "0": {
-          "name": "punctuation.definition.mapping.begin.yaml"
-        }
-      },
-      "end": "\\}",
-      "endCaptures": {
-        "0": {
-          "name": "punctuation.definition.mapping.end.yaml"
-        }
-      },
+  "injections": {
+    "L:source.hyperbricks-yaml meta.map.key.yaml - meta.scalar.yaml - comment, L:source.hyperbricks-yaml meta.flow.map.key.yaml - meta.scalar.yaml - comment": {
       "patterns": [
         {
-          "include": "#go-template"
+          "include": "#inherit-key"
         },
         {
-          "include": "#flow-mapping"
+          "include": "#type-key"
         },
         {
-          "include": "#flow-sequence"
+          "include": "#file-keywords"
+        },
+        {
+          "include": "#root-components"
+        },
+        {
+          "include": "#component-fields"
+        },
+        {
+          "include": "#resolver-keys"
+        }
+      ]
+    },
+    "L:source.hyperbricks-yaml string - entity.name.tag - meta.scalar.yaml - comment": {
+      "patterns": [
+        {
+          "include": "#component-types"
+        },
+        {
+          "include": "#inheritance-values"
         },
         {
           "include": "#path-bases"
-        },
-        {
-          "include": "#flow-resolver-keys"
-        },
-        {
-          "include": "#flow-field-keys"
-        },
-        {
-          "match": ",",
-          "name": "punctuation.separator.mapping.yaml"
-        },
-        {
-          "include": "source.yaml.1.2#flow-node"
         }
       ]
     },
-    "flow-sequence": {
-      "name": "meta.flow.sequence.yaml meta.flow.sequence.hyperbricks",
-      "begin": "\\[",
-      "beginCaptures": {
-        "0": {
-          "name": "punctuation.definition.sequence.begin.yaml"
-        }
-      },
-      "end": "\\]",
-      "endCaptures": {
-        "0": {
-          "name": "punctuation.definition.sequence.end.yaml"
-        }
-      },
+    "L:source.hyperbricks-yaml string.unquoted.block.yaml - comment - meta.template.expression.hyperbricks": {
       "patterns": [
         {
           "include": "#go-template"
-        },
-        {
-          "include": "#flow-mapping"
-        },
-        {
-          "include": "#flow-sequence"
-        },
-        {
-          "match": ",",
-          "name": "punctuation.separator.sequence.yaml"
-        },
-        {
-          "include": "source.yaml.1.2#flow-node"
         }
       ]
+    },
+    "L:source.hyperbricks-yaml string.quoted.single.yaml - entity.name.tag - comment - meta.template.expression.hyperbricks": {
+      "patterns": [
+        {
+          "include": "#inline-template-single"
+        }
+      ]
+    },
+    "L:source.hyperbricks-yaml string.quoted.double.yaml - entity.name.tag - comment - meta.template.expression.hyperbricks": {
+      "patterns": [
+        {
+          "include": "#inline-template-double"
+        }
+      ]
+    },
+    "L:source.hyperbricks-yaml string.unquoted.plain - entity.name.tag - comment - meta.template.expression.hyperbricks": {
+      "patterns": [
+        {
+          "include": "#inline-template-plain"
+        }
+      ]
+    }
+  },
+  "repository": {
+    "inherit-key": {
+      "name": "keyword.control.inherit.hyperbricks",
+      "match": "(?<=^[\\t ]*-[\\t ]+['\"]?)inherit(?=['\"]?[\\t ]*:)"
+    },
+    "type-key": {
+      "name": "keyword.control.type.hyperbricks",
+      "match": "(?<=^[\\t ]*-[\\t ]+['\"]?)type(?=['\"]?[\\t ]*:)"
+    },
+    "file-keywords": {
+      "name": "keyword.control.hyperbricks",
+      "match": "(?<=^['\"]?)(?:imports|vars)(?=['\"]?[\\t ]*:)"
+    },
+    "root-components": {
+      "name": "entity.name.tag.component.hyperbricks",
+      "match": "(?<=^['\"]?)[A-Za-z_][A-Za-z0-9_.-]*(?=['\"]?[\\t ]*:)"
+    },
+    "component-fields": {
+      "name": "support.type.property-name.hyperbricks",
+      "match": "(?<=^[\\t ]*-[\\t ]+['\"]?)[A-Za-z_][A-Za-z0-9_.@-]*(?=['\"]?[\\t ]*:)"
+    },
+    "resolver-keys": {
+      "name": "entity.name.tag.resolver.hyperbricks",
+      "match": "\\G(?:var|env|config|path|file|format|args|base|parts)(?=['\"]?[\\t ]*:)"
+    },
+    "component-types": {
+      "name": "support.type.component.hyperbricks",
+      "match": "(?<=^[\\t ]*-[\\t ]+['\"]?type['\"]?:[\\t ]+['\"]?)(?:<(?:HYPERMEDIA|FRAGMENT|API_RENDER|API_FRAGMENT_RENDER|TREE|HEAD|TEMPLATE|HTML|TEXT|CSS|JAVASCRIPT|JS|IMAGE|IMAGES|JSON|JSON_RENDER|MENU|PLUGIN|STYLES|MARKDOWN|GOJA_RENDER|ESBUILD)>|(?:hypermedia|fragment|api_render|api_fragment_render|tree|head|template|html|text|css|javascript|js|image|images|json|json_render|menu|plugin|styles|markdown|goja_render|esbuild))(?=['\"]?[\\t ]*(?:#.*)?$)"
+    },
+    "inheritance-values": {
+      "name": "entity.other.inherited-class.hyperbricks",
+      "match": "(?<=^[\\t ]*-[\\t ]+['\"]?inherit['\"]?:[\\t ]+['\"]?)[A-Za-z_][A-Za-z0-9_.\\[\\]-]*(?=['\"]?[\\t ]*(?:#.*)?$)"
+    },
+    "path-bases": {
+      "name": "support.constant.path-base.hyperbricks",
+      "match": "\\G(?<=\\bbase['\"]?:[\\t ]+['\"]?)(?:module_root|root|module|resources|templates|static|hyperbricks|render)(?=['\"]?(?:[\\t ]|[,}\\]]|$))"
+    },
+    "inline-template-single": {
+      "comment": "Only complete expressions inside this YAML scalar can enter template state. An unfinished expression must not consume the closing YAML quote or subsequent comments.",
+      "match": "\\{\\{-?(?:[^'\\r\\n]|'')*?-?\\}\\}",
+      "captures": {
+        "0": {
+          "name": "meta.template.expression.hyperbricks",
+          "patterns": [{ "include": "#go-template" }]
+        }
+      }
+    },
+    "inline-template-double": {
+      "match": "\\{\\{-?(?:[^\\\"\\\\\\r\\n]|\\\\.)*?-?\\}\\}",
+      "captures": {
+        "0": {
+          "name": "meta.template.expression.hyperbricks",
+          "patterns": [{ "include": "#go-template" }]
+        }
+      }
+    },
+    "inline-template-plain": {
+      "match": "\\{\\{-?(?:(?![\\t ]+#)[^\\r\\n])*?-?\\}\\}",
+      "captures": {
+        "0": {
+          "name": "meta.template.expression.hyperbricks",
+          "patterns": [{ "include": "#go-template" }]
+        }
+      }
     },
     "go-template": {
       "name": "meta.template.expression.hyperbricks",
@@ -341,6 +153,27 @@
         }
       },
       "patterns": [
+        {
+          "begin": "/\\*",
+          "end": "\\*/",
+          "name": "comment.block.template.hyperbricks"
+        },
+        {
+          "begin": "\"",
+          "end": "\"",
+          "name": "string.quoted.double.template.hyperbricks",
+          "patterns": [
+            {
+              "match": "\\\\.",
+              "name": "constant.character.escape.template.hyperbricks"
+            }
+          ]
+        },
+        {
+          "begin": "`",
+          "end": "`",
+          "name": "string.quoted.raw.template.hyperbricks"
+        },
         {
           "match": "\\b(if|else|end|range|with|template|block|define)\\b",
           "name": "keyword.control.template.hyperbricks"

@@ -258,6 +258,8 @@ async function startLanguageClient(): Promise<void> {
         ownsDocument(document.uri) ? next(document, position, token) : null,
       provideDefinition: (document, position, token, next) =>
         ownsDocument(document.uri) ? next(document, position, token) : null,
+      provideDocumentSemanticTokens: (document, token, next) =>
+        ownsDocument(document.uri) ? next(document, token) : null,
       provideDocumentFormattingEdits: (document, options, token, next) =>
         ownsDocument(document.uri) ? next(document, options, token) : []
     },

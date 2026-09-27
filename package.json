@@ -73,6 +73,28 @@
         "path": "./syntaxes/hyperbricks.tmLanguage.json"
       }
     ],
+    "semanticTokenScopes": [
+      {
+        "language": "hyperbricks-yaml",
+        "scopes": {
+          "keyword": [
+            "keyword.control.hyperbricks"
+          ],
+          "class": [
+            "entity.other.inherited-class.hyperbricks"
+          ],
+          "class.declaration": [
+            "entity.name.tag.component.hyperbricks"
+          ],
+          "property": [
+            "support.type.property-name.hyperbricks"
+          ],
+          "type": [
+            "support.type.component.hyperbricks"
+          ]
+        }
+      }
+    ],
     "commands": [
       {
         "command": "hyperbricks.restartLanguageServer",

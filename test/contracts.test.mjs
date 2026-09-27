@@ -158,6 +158,7 @@ test("client pins protocol v1 and the agreed runtime methods", async () => {
     "provideCompletionItem",
     "provideHover",
     "provideDefinition",
+    "provideDocumentSemanticTokens",
     "provideDocumentFormattingEdits"
   ]) {
     assert.match(source, new RegExp(`\\b${middleware}:`), `${middleware} must enforce active-folder ownership`);
@@ -193,17 +194,17 @@ test("client pins protocol v1 and the agreed runtime methods", async () => {
 });
 
 test("TextMate grammar augments YAML with HyperBricks lexical scopes", async () => {
+  const manifest = await readJSON("package.json");
   const grammar = await readJSON("syntaxes/hyperbricks.tmLanguage.json");
   assert.equal(grammar.scopeName, "source.hyperbricks-yaml");
-  assert.ok(grammar.patterns.some(({ include }) => include === "source.yaml.embedded"));
-  assert.equal(
-    grammar.patterns.some(({ include }) => include === "source.yaml"),
-    false,
-    "the document-level YAML grammar would take ownership after the first token and hide later HyperBricks scopes"
-  );
+  assert.deepEqual(grammar.patterns, [{ include: "source.yaml" }],
+    "the complete YAML grammar must own comments, quote escapes, mapping boundaries and scalar indentation");
+  assert.ok(Object.keys(grammar.injections).some((selector) => selector.includes("meta.map.key.yaml")),
+    "HyperBricks keys must be styled within keys already identified by YAML");
+  assert.ok(Object.keys(grammar.injections).every((selector) => selector.includes("- comment")),
+    "HyperBricks injections must leave YAML comments alone");
 
   const repository = grammar.repository;
-  assert.match(repository["invalid-runtime-keys"].match, /@type\|@order/);
   assert.match(repository["component-types"].match, /hypermedia/);
   assert.match(repository["component-types"].match, /api_fragment_render/);
   const componentTypePattern = new RegExp(repository["component-types"].match);
@@ -218,40 +219,35 @@ test("TextMate grammar augments YAML with HyperBricks lexical scopes", async () 
   for (const source of ["  - type: <NOT_REGISTERED>", "  - type: html-ish"]) {
     assert.doesNotMatch(source, componentTypePattern, `unknown component type must not receive a native scope: ${source}`);
   }
-  assert.equal(
-    repository["root-components"].captures["2"].name,
-    "entity.name.tag.yaml entity.name.tag.component.hyperbricks"
+  assert.equal(repository["root-components"].name, "entity.name.tag.component.hyperbricks");
+  assert.equal(repository["inheritance-values"].name, "entity.other.inherited-class.hyperbricks");
+  assert.equal(repository["type-key"].name, "keyword.control.type.hyperbricks");
+  assert.equal(repository["inherit-key"].name, "keyword.control.inherit.hyperbricks");
+  assert.equal(repository["file-keywords"].name, "keyword.control.hyperbricks");
+  assert.equal(repository["component-fields"].name, "support.type.property-name.hyperbricks");
+  assert.equal(repository["flow-field-keys"], undefined, "flow mappings require schema context before field styling");
+  assert.deepEqual(
+    manifest.contributes.semanticTokenScopes,
+    [
+      {
+        language: "hyperbricks-yaml",
+        scopes: {
+          keyword: ["keyword.control.hyperbricks"],
+          class: ["entity.other.inherited-class.hyperbricks"],
+          "class.declaration": ["entity.name.tag.component.hyperbricks"],
+          property: ["support.type.property-name.hyperbricks"],
+          type: ["support.type.component.hyperbricks"]
+        }
+      }
+    ],
+    "semantic highlighting must use theme scopes rather than hardcoded colors"
   );
-  assert.equal(repository["inheritance-entries"].captures["8"].name, "entity.other.inherited-class.hyperbricks");
-  assert.equal(repository["component-types"].captures["3"].name, "keyword.control.type.hyperbricks");
-  assert.equal(repository["inheritance-entries"].captures["3"].name, "keyword.control.inherit.hyperbricks");
-  assert.equal(repository["reserved-entries"].captures["3"].name, "keyword.control.hyperbricks");
-  assert.equal(
-    repository["component-fields"].captures["4"].name,
-    "entity.name.tag.yaml entity.name.tag.field.hyperbricks"
+  assert.doesNotMatch(
+    JSON.stringify(manifest.contributes.semanticTokenScopes),
+    /#[0-9a-f]{3,8}\b/i,
+    "semantic highlighting colors belong to the active theme"
   );
-  assert.equal(
-    repository["flow-field-keys"].captures["2"].name,
-    "entity.name.tag.yaml entity.name.tag.field.hyperbricks"
-  );
-  assert.equal(
-    repository["path-mapping-values"].captures["3"].name,
-    "entity.name.tag.yaml entity.name.tag.path.hyperbricks"
-  );
-  assert.equal(repository["path-mapping-values"].captures["8"].name, "string.unquoted.path.hyperbricks");
-  assert.equal(repository["path-list-values"].captures["4"].name, "string.unquoted.path.hyperbricks");
-  for (const [rule, capture] of [
-    ["resolver-keys", "3"],
-    ["path-base-entries", "3"],
-    ["flow-resolver-keys", "2"],
-    ["path-bases", "1"]
-  ]) {
-    assert.equal(
-      repository[rule].captures[capture].name,
-      "entity.name.tag.yaml entity.name.tag.resolver.hyperbricks",
-      `${rule} keys must retain the standard YAML property scope`
-    );
-  }
+  assert.equal(repository["resolver-keys"].name, "entity.name.tag.resolver.hyperbricks");
   assert.match(repository["resolver-keys"].match, /var\|env\|config\|path\|file\|format\|args/);
   assert.match(repository["path-bases"].match, /module_root/);
 

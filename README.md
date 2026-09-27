@@ -5,24 +5,41 @@ executable.
 
 | Feature | How to use it | Result |
 | --- | --- | --- |
-| Highlighting | Open `*.hyperbricks.yaml` and select **HyperBricks YAML** when needed. | Theme-driven YAML scopes for declarations, native types, reserved fields, inheritance, resolvers, paths, and Go-template expressions. |
-| Static diagnostics | Edit an owned source, untitled HyperBricks buffer, or selected package file and inspect **Problems**. | Immediate YAML, native-schema, import, inheritance, and configuration feedback from unsaved buffers. |
-| Completion and snippets | Type normally or run **Trigger Suggest** in a type, field, `inherit`, resolver, template, or recognized local-path position. | Schema-backed suggestions plus effective dotted `inherit` paths across imports. |
-| Hover | Hover a native `type` value or schema-owned field. | Registry descriptions and, for fields, examples when available. Inherited components use their effective native type. |
-| Go to Definition | Press F12 or Cmd/Ctrl-click an import, `inherit`, `template.file`, or recognized local resource path. | Opens the effective declaration or actual file, including transitive imports and unsaved buffers. |
+| Highlighting | Open `*.hyperbricks.yaml` and select **HyperBricks YAML** when needed. | Full YAML handling for comments, quoting, block scalars, and flow mappings; theme-driven semantic colors distinguish reserved words, components, native types, and fields from ordinary data. |
+| Static diagnostics | Edit an owned source, untitled HyperBricks buffer, or selected package file and inspect **Problems**. | Immediate YAML, native-schema, import, inheritance, configuration, and resolver feedback, including focused missing-colon messages. |
+| Completion and snippets | Type `- ` at a component-entry level, type `: ` before a value, or press **Control+Space**. | Effective fields and children, nested schema fields, booleans, block/flow resolvers and options, imports, variable/configuration names, local files, and dotted `inherit` paths. |
+| Hover | Hover a native `type`, schema field, resolver key, or resolver option. | Registry descriptions and resolver guidance with examples, without displaying resolved environment or configuration values. |
+| Go to Definition | Press F12 or Cmd/Ctrl-click an import, `inherit`, `var` name, `config` path, template file, or recognized local resource path. | Opens the effective declaration or actual file, including transitive imports and unsaved buffers. |
 | Formatting | Run **Format Document** or enable format-on-save separately. | Safe whole-document formatting that preserves ordered entries, mapping order, comments, scalar styles, and meaning. |
 | Module check | Run **HyperBricks: Run Module Check**. | Executes the saved-project Doctor check and writes the complete report to HyperBricks Output. |
 | Runtime feedback | Start a development/debug runtime and use automatic discovery or **Connect Runtime Diagnostics**. | Safely mapped runtime Problems, checked-route coverage in the status bar, and the Errors view when advertised. |
 
 The extension deliberately does not carry a second component schema. Semantic
-features come from the same parser and schema registry as the configured
-HyperBricks executable. The TextMate grammar contains only lexical tokens used
-for immediate highlighting before the language server is ready.
+features, including the accurate field-versus-data distinction, come from the
+same parser and schema registry as the configured HyperBricks executable. The
+TextMate grammar builds on VS Code's full YAML grammar and supplies immediate
+highlighting before the language server is ready. Highlight colors remain
+controlled by the active VS Code theme; the extension maps semantic tokens to
+standard theme scopes and does not force a custom palette.
 
 Code suggestions here mean IntelliSense completions and snippets. The extension
 does not provide AI-generated code or Quick Fixes. Dotted object-path completion
 is specific to runtime-valid `inherit` references; ordinary mappings such as a
 template's `values` are not inheritance paths.
+
+Completion follows the YAML structure under the cursor. Ordinary data lists do
+not inherit suggestions from a nearby component, and unknown plugin schemas do
+not receive invented fields. Path completions replace the complete scalar being
+edited while preserving surrounding flow options and comments. For example:
+
+```yaml
+mydoc:
+  - type: text
+  - value: {file: {base: resources, path: docs/llms.md}} # file contents
+```
+
+The colon after `value` is required. Hover `file` or `base` for the resolver
+contract, and Cmd/Ctrl-click the path to open the existing resource.
 
 ## Requirements
 
@@ -45,6 +62,21 @@ mode from the configured package path and source directories.
 
 Use a VSIX and `hyperbricks` executable from the same revision. This extension
 is not currently installed from a marketplace.
+
+From the repository root, build a matching executable:
+
+```bash
+go build -o bin/hyperbricks-vscode ./cmd/hyperbricks
+```
+
+Set `hyperbricks.executable` to its absolute path, for example:
+
+```json
+"hyperbricks.executable": "/absolute/path/to/hyperbricks/bin/hyperbricks-vscode"
+```
+
+This creates a separate binary and leaves an existing `bin/hyperbricks` in
+place. Reinstalling the VSIX does not update the language server executable.
 
 If you do not already have a VSIX, build one from this directory:
 
@@ -128,7 +160,8 @@ npm run package
 ```
 
 The contract tests validate the extension manifest, language registration,
-protocol identifiers, commands, and settings. A tokenizer test also loads the
-TextMate grammar and verifies that representative HyperBricks tokens receive
-their intended scopes throughout a document. Compiling additionally type-checks
-and bundles the TypeScript client.
+protocol identifiers, commands, and settings. Tokenizer tests load the complete
+VS Code YAML grammar fixtures and exercise comments, quote escapes, block
+scalars, nested flow resolvers, and incomplete template expressions. Compiling
+additionally type-checks and bundles the TypeScript client. Token tests verify
+emitted scopes; the visible colors still depend on the user's theme.
