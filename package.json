@@ -53,6 +53,13 @@
     "onCommand:hyperbricks.showOutput"
   ],
   "contributes": {
+    "keybindings": [
+      {
+        "key": "enter",
+        "command": "hyperbricks.smartEnter",
+        "when": "editorTextFocus && !editorReadonly && editorLangId == hyperbricks-yaml && config.hyperbricks.smartEnter && !editorHasSelection && !editorHasMultipleSelections && !suggestWidgetVisible && !inlineSuggestionVisible && !inSnippetMode && !renameInputVisible"
+      }
+    ],
     "languages": [
       {
         "id": "hyperbricks-yaml",
@@ -136,6 +143,12 @@
     "configuration": {
       "title": "HyperBricks",
       "properties": {
+        "hyperbricks.smartEnter": {
+          "type": "boolean",
+          "default": true,
+          "scope": "resource",
+          "description": "On an indentation-only line, Enter returns to column 0 with a blank separator. Multiline YAML strings and unfinished flow collections keep normal Enter behavior."
+        },
         "hyperbricks.executable": {
           "type": "string",
           "default": "hyperbricks",

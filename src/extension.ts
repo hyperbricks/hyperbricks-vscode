@@ -1,5 +1,6 @@
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import * as vscode from "vscode";
+import { smartEnter } from "./smart-enter";
 import {
   LanguageClient,
   State,
@@ -88,6 +89,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   context.subscriptions.push(
     output,
     status,
+    vscode.commands.registerCommand("hyperbricks.smartEnter", smartEnter),
     vscode.commands.registerCommand("hyperbricks.restartLanguageServer", async () => {
       output.info("Restarting the HyperBricks language server on request.");
       await queueRestart();

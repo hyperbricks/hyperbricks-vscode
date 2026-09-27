@@ -2,6 +2,9 @@
 
 ## 0.1.0
 
+- Add configurable smart Enter: an indentation-only line exits to column 0,
+  preserving normal editing inside multiline strings and unfinished collections.
+
 - Use VS Code's complete YAML grammar for comments, quote escapes, block scalars,
   and nested flow mappings, with HyperBricks styling scoped to real YAML tokens.
   Test against the actual bundled YAML grammars and protect unfinished template

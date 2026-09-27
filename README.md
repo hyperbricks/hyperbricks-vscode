@@ -105,6 +105,13 @@ npm run package
 
 ## Settings
 
+**Smart Enter** is enabled by default (`hyperbricks.smartEnter: true`). Enter
+after a completed field keeps normal indentation; Enter again on the empty,
+indented line leaves a blank separator and moves to column 0. Set it to `false`
+for ordinary YAML behavior. Multiline text, unfinished quotes/flow collections,
+completion popups, snippets, selections, and multiple cursors keep normal editing
+behavior. This changes typing only, not Format Document.
+
 | Setting | Default | Change it when |
 | --- | --- | --- |
 | `hyperbricks.executable` | `hyperbricks` | The matching executable is not on `PATH`, or the workspace should use a checkout-specific build. |
