@@ -26,16 +26,22 @@ async function loadModuleSelection() {
   return module.exports;
 }
 
-test("automatic module selection finds the package owning the active todo source", async () => {
+test("automatic module selection finds the package owning a nested source", async () => {
   const { resolveModuleSelection } = await loadModuleSelection();
-  const workspace = path.resolve(extensionRoot, "../..");
+  const workspace = await mkdtemp(path.join(os.tmpdir(), "hyperbricks-module-selection-"));
   const document = path.join(
     workspace,
     "modules",
-    "todo-demo-unpoly",
+    "demo",
     "hyperbricks",
     "app.hyperbricks.yaml"
   );
+  await mkdir(path.dirname(document), { recursive: true });
+  await writeFile(
+    path.join(workspace, "modules", "demo", "package.hyperbricks.yaml"),
+    "hyperbricks: {}\n"
+  );
+  await writeFile(document, "page:\n  - type: html\n  - value: ok\n");
 
   const selection = resolveModuleSelection({
     workspacePath: workspace,
@@ -44,8 +50,8 @@ test("automatic module selection finds the package owning the active todo source
     configuredConfig: "package.hyperbricks.yaml"
   });
 
-  assert.equal(selection.module, path.join("modules", "todo-demo-unpoly"));
-  assert.equal(selection.moduleRoot, path.join(workspace, "modules", "todo-demo-unpoly"));
+  assert.equal(selection.module, path.join("modules", "demo"));
+  assert.equal(selection.moduleRoot, path.join(workspace, "modules", "demo"));
   assert.equal(selection.automatic, true);
   assert.equal(selection.warning, undefined);
 });

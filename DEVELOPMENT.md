@@ -9,22 +9,26 @@ settings, commands, and troubleshooting, see the [user guide](README.md).
 - Node.js and npm, for the extension toolchain
 - Visual Studio Code 1.95 or newer
 
-The extension and executable must come from the same HyperBricks revision. The
-extension uses editor protocol version 1 and rejects an incompatible language
-server during initialization.
+The extension uses editor protocol version 1 and rejects an incompatible
+language server during initialization. Use a HyperBricks checkout that supports
+the protocol version under development.
 
-## Set up a checkout
+## Set up the checkouts
 
-Build the executable from the repository root:
+Clone the runtime and extension repositories beside each other, then build a
+development executable into the extension's ignored `.dev` directory:
 
 ```bash
-go build -o bin/hyperbricks-vscode ./cmd/hyperbricks
+git clone https://github.com/hyperbricks/hyperbricks.git
+git clone https://github.com/hyperbricks/hyperbricks-vscode.git
+cd hyperbricks
+go build -o ../hyperbricks-vscode/.dev/hyperbricks ./cmd/hyperbricks
 ```
 
-Install extension dependencies and run the complete extension check from
-`editors/vscode`:
+Install extension dependencies and run the complete extension check:
 
 ```bash
+cd ../hyperbricks-vscode
 npm ci
 npm run check
 ```
@@ -32,16 +36,17 @@ npm run check
 Configure the development workspace to use the absolute path of the executable:
 
 ```json
-"hyperbricks.executable": "/absolute/path/to/hyperbricks/bin/hyperbricks-vscode"
+"hyperbricks.executable": "/absolute/path/to/hyperbricks-vscode/.dev/hyperbricks"
 ```
 
-Using a separate output name leaves an existing `bin/hyperbricks` untouched.
+The `.dev` directory is ignored and keeps the runtime build outside both
+repositories' tracked files.
 
 ## Run the Extension Development Host
 
-Open `editors/vscode` as the VS Code workspace and press **F5**. The tracked
-launch configuration runs the compile task before starting the Extension
-Development Host.
+Open the extension repository as the VS Code workspace and press **F5**. The
+tracked launch configuration runs the compile task before starting the
+Extension Development Host.
 
 For iterative TypeScript work, run:
 
@@ -100,7 +105,7 @@ they do not test the colors of a particular theme.
 
 ## Build a VSIX
 
-From `editors/vscode`, run:
+From the extension repository root, run:
 
 ```bash
 npm run package

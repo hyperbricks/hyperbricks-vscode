@@ -1,45 +1,65 @@
 # Changelog
 
+All notable changes to the HyperBricks Visual Studio Code extension are recorded
+here.
+
 ## 0.1.0
 
-- Add configurable smart Enter: an indentation-only line exits to column 0,
-  preserving normal editing inside multiline strings and unfinished collections.
+Initial preview release. Install the extension from a VSIX and use it with a
+HyperBricks executable from the same revision. The extension requires
+HyperBricks editor protocol version 1.
 
-- Use VS Code's complete YAML grammar for comments, quote escapes, block scalars,
-  and nested flow mappings, with HyperBricks styling scoped to real YAML tokens.
-  Test against the actual bundled YAML grammars and protect unfinished template
-  expressions from consuming subsequent comments.
-- Derive completion context from the YAML tree, including nested schema fields,
-  inherited child overlays, boolean values, and block/flow resolver options.
-- Complete imports, source variable names, selected configuration paths, and
-  local resource files; apply explicit scalar edits with valid quoting that
-  preserve flow delimiters and comments without duplicating path prefixes.
-- Explain resolver keys and options on hover, and navigate variable/configuration
-  declarations and static resource or template paths without displaying resolved
-  secrets in hover or completion.
-- Preserve materializer resolver diagnostics and report a missing colon before
-  a flow resolver at the component field that needs it.
-- Register the HyperBricks YAML language and TextMate grammar.
-- Give the language and grammar conflict-free identifiers and verify emitted
-  highlighting scopes with the TextMate tokenizer.
-- Add schema-aware semantic highlighting that keeps reserved words prominent,
-  lightly distinguishes component fields, and leaves ordinary nested YAML data
-  under normal YAML highlighting.
-- Trigger value completion after the required YAML `: ` separator and suppress
-  suggestions that would preserve malformed no-space values such as `type:hy`.
-- Trigger type-aware field and child completion after `- ` at the owning
-  component indentation without activating inside ordinary nested data lists.
-- Start the protocol-v1 HyperBricks language server over stdio.
-- Select the active file's owning module automatically so imported inheritance
-  is analyzed correctly from a repository-root workspace.
-- Add Go to Definition for imports, inheritance targets, templates, and local
-  resource paths, with complete clickable relation ranges and effective
-  inherited-child provenance.
-- Add context-aware dotted `inherit` completion that follows imported,
-  effective component children without treating ordinary `values` mappings as
-  inheritance paths.
-- Clear corrected static and runtime Problems reliably by publishing the LSP
-  replacement empty diagnostic set.
-- Add runtime diagnostic controls and status-bar feedback.
-- Add commands for server restart, HyperBricks Doctor, runtime Errors, and
-  extension output.
+### Language support
+
+- Register `*.hyperbricks.yaml` as **HyperBricks YAML** and start the matching
+  HyperBricks language server over stdio.
+- Combine VS Code's complete YAML grammar with schema-aware semantic tokens for
+  reserved words, component declarations, native types, inheritance targets,
+  and component fields while leaving ordinary YAML data unstyled.
+- Report YAML, native-schema, required-field, import, inheritance,
+  configuration, resource, and resolver diagnostics in the Problems panel.
+- Complete native types, effective fields and children, nested schema values,
+  booleans, resolvers, imports, variables, configuration paths, local files, and
+  dotted inheritance paths from the YAML structure at the cursor.
+- Add hover help for native fields and resolvers without exposing resolved
+  environment values, configuration values, secrets, or file contents.
+- Add Go to Definition for imports, inheritance targets, variables,
+  configuration declarations, templates, and safe local resource paths.
+- Format complete documents while preserving component order, mapping order,
+  comments, scalar styles, and parsed meaning.
+- Add configurable Smart Enter behavior for leaving an indented component block
+  without changing multiline strings, unfinished collections, snippets, or
+  completion interactions.
+
+### Project and runtime integration
+
+- Select the package that owns the active HyperBricks file, support explicit
+  module selection, and restart the client when the active project changes.
+- Keep unsaved source in the language-server overlay so static feedback,
+  completion, hover, and navigation follow the editor buffer.
+- Add authenticated development/debug runtime diagnostics, checked-route
+  coverage, status-bar feedback, safe source mapping, and reliable clearing of
+  corrected static and runtime Problems.
+- Add commands to restart the language server, connect or disconnect runtime
+  diagnostics, run HyperBricks Doctor, open runtime Errors, and show extension
+  output.
+
+### Safety and compatibility
+
+- Use the HyperBricks runtime parser and schema registry as the single source of
+  truth instead of shipping a separate component schema in the extension.
+- Reject incompatible editor-protocol versions and unsafe runtime URL settings.
+- Limit automatic credential use to local loopback runtimes; remote credentials
+  are not accepted by protocol version 1.
+- Keep navigation and file completion inside the selected module and avoid
+  inventing fields for ordinary data or plugin schemas unavailable to the
+  protocol.
+
+### Development and documentation
+
+- Add contract, module-selection, Smart Enter, and grammar-tokenization tests,
+  including the complete vendored VS Code YAML grammar fixtures.
+- Provide the complete extension check through `npm run check`.
+- Consolidate installation, settings, commands, runtime feedback, and
+  troubleshooting in `README.md`, with contributor setup, architecture, tests,
+  and VSIX packaging in `DEVELOPMENT.md`.

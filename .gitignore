@@ -1,3 +1,4 @@
 node_modules/
 out/
+.dev/
 *.vsix

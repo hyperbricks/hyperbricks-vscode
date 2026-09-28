@@ -2,10 +2,10 @@
 
 The HyperBricks extension adds language support for `*.hyperbricks.yaml` files.
 It uses the language server built into the HyperBricks executable, so the
-extension and executable must come from the same HyperBricks revision.
+extension and executable must support the same editor protocol version.
 
 The extension is not currently distributed through a marketplace. Install it
-from a VSIX supplied with, or built from, the matching HyperBricks source.
+from a VSIX supplied by this repository or built from source.
 
 ## What you get
 
@@ -39,7 +39,8 @@ clear compatibility error instead of starting against another protocol version.
 
 ## Install and start
 
-1. Obtain a VSIX and HyperBricks executable from the same revision.
+1. Obtain the extension VSIX and a compatible HyperBricks executable. Version
+   `0.1.x` of the extension requires HyperBricks editor protocol version 1.
 2. Install the VSIX with **Extensions: Install from VSIX...**, or run:
 
    ```bash
@@ -158,7 +159,8 @@ hyperbricks language-server --help
 ```
 
 Then open **HyperBricks: Show Output**. A development checkout may be newer than
-the executable found on `PATH`; use a matching executable and VSIX.
+the executable found on `PATH`; use extension and runtime releases that support
+the same editor protocol version.
 
 ### The wrong module is selected
 
@@ -188,5 +190,5 @@ means credentials were rejected; a `503` means complete developer credentials
 are unavailable; live mode deliberately returns `404`.
 
 For the underlying runtime diagnostic lifecycle, see
-[HyperBricks troubleshooting](../../docs/TROUBLESHOOTING.md#find-the-reported-error)
-and the [CLI render-diagnostics reference](../../docs/HYPERBRICKS_CLI.md#render-diagnostics).
+[HyperBricks troubleshooting](https://github.com/hyperbricks/hyperbricks/blob/main/docs/TROUBLESHOOTING.md#find-the-reported-error)
+and the [CLI render-diagnostics reference](https://github.com/hyperbricks/hyperbricks/blob/main/docs/HYPERBRICKS_CLI.md#render-diagnostics).
