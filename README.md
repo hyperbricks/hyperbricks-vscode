@@ -1,5 +1,14 @@
 # HyperBricks for Visual Studio Code
 
+## Compatibility
+
+| Extension version | Tested HyperBricks release | Editor protocol |
+| --- | --- | --- |
+| `0.1.x` | `v1.2.6-beta` | `1` |
+
+Other HyperBricks builds may work when they implement editor protocol version
+`1`, but `v1.2.6-beta` is the release tested with this extension version.
+
 The HyperBricks extension adds language support for `*.hyperbricks.yaml` files.
 It uses the language server built into the HyperBricks executable, so the
 extension and executable must support the same editor protocol version.
