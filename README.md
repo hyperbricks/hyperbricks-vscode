@@ -62,8 +62,21 @@ clear compatibility error instead of starting against another protocol version.
 6. Open **HyperBricks: Show Output** to confirm the selected executable, module,
    and package profile.
 
-When `hyperbricks` is not on `PATH`, set `hyperbricks.executable` to its absolute
-path. Building the extension or executable from source is documented in
+With the default `hyperbricks.executable` setting, the extension first checks
+VS Code's `PATH`, then the Go installation directory: `GOBIN`, the first
+`GOPATH` entry's `bin` directory, or `~/go/bin` when neither is configured.
+It reads persisted Go settings with `go env` when Go is available on the editor's
+`PATH`. This also finds a default Go installation when VS Code was opened from
+the Dock and did not inherit your terminal's `PATH`.
+
+An explicit executable path or custom command stays authoritative; an invalid
+setting produces a recovery message instead of selecting another installation.
+Both the language server and **Run Module Check** use this discovery and log
+the selected absolute path in **HyperBricks: Show Output**. Compare that path
+with `command -v hyperbricks` in your terminal (`where.exe hyperbricks` on Windows)
+when you have more than one installation.
+
+Building the extension or executable from source is documented in
 [DEVELOPMENT.md](DEVELOPMENT.md).
 
 ## Module selection
@@ -160,6 +173,19 @@ it. JSON runtime diagnostics do not require that view to be enabled.
 ## Troubleshooting
 
 ### The language server does not start
+
+If the output reports `ENOENT` or **executable not found**, use **Open Settings**
+in the error notification and set `hyperbricks.executable` to the absolute path
+of your installed binary. The output lists the locations that were checked.
+For a Go installation, run `go env GOBIN GOPATH` in your terminal: use `GOBIN`
+when nonempty, otherwise the first `GOPATH` directory followed by `/bin/hyperbricks`
+(`\bin\hyperbricks.exe` on Windows). A custom Go environment that exists only
+in the terminal may not be visible to the editor.
+
+After changing your system or shell `PATH`, fully quit and reopen VS Code.
+**Restart Language Server** retries discovery but does not refresh VS Code's
+inherited environment. Changing `hyperbricks.executable` restarts the server
+automatically.
 
 Run the configured executable directly:
 

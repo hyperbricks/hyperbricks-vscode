@@ -1,6 +1,7 @@
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import * as vscode from "vscode";
 import { smartEnter } from "./smart-enter";
+import { resolveExecutable } from "./executable";
 import {
   LanguageClient,
   State,
@@ -76,6 +77,7 @@ let lifecycle = Promise.resolve();
 let restartTimer: ReturnType<typeof setTimeout> | undefined;
 let activeProjectKey = "";
 let doctorProcess: ChildProcessWithoutNullStreams | undefined;
+let moduleCheckRunning = false;
 let runtimeUrlConnectionBlocked = false;
 let moduleSelectionWarning = "";
 
@@ -190,8 +192,14 @@ async function startLanguageClient(): Promise<void> {
   serverPhase = "starting";
   updateStatus();
 
+  const executable = await selectExecutable(settings, folder);
+  if (executable === undefined) {
+    serverPhase = "error";
+    updateStatus("HyperBricks executable not found. Set hyperbricks.executable in Settings; see Output for the checked paths.");
+    return;
+  }
   const serverOptions: ServerOptions = {
-    command: settings.executable,
+    command: executable,
     args: ["language-server", "--stdio"],
     options: folder === undefined ? undefined : { cwd: folder.uri.fsPath }
   };
@@ -305,7 +313,7 @@ async function startLanguageClient(): Promise<void> {
       client = undefined;
     }
     serverPhase = "error";
-    const message = `Could not start ${settings.executable} language-server --stdio: ${errorMessage(error)}`;
+    const message = `Could not start ${executable} language-server --stdio: ${errorMessage(error)}`;
     output.error(message);
     updateStatus(message);
     void vscode.window.showErrorMessage(message, "Show Output").then((choice) => {
@@ -461,7 +469,7 @@ function acceptRuntimeStatus(next: RuntimeStatus): void {
 }
 
 async function runModuleCheck(): Promise<void> {
-  if (doctorProcess !== undefined) {
+  if (moduleCheckRunning) {
     output.show(true);
     void vscode.window.showInformationMessage("A HyperBricks module check is already running.");
     return;
@@ -473,67 +481,98 @@ async function runModuleCheck(): Promise<void> {
     void vscode.window.showWarningMessage(settings.moduleSelectionWarning);
     return;
   }
-  const args = ["doctor", "--module", settings.module, "--config", settings.config];
-  output.info(`Running HyperBricks Doctor for module ${settings.module} (${settings.config}).`);
-  output.show(true);
+  moduleCheckRunning = true;
+  try {
+    const executable = await selectExecutable(settings, folder);
+    if (executable === undefined) return;
+    const args = ["doctor", "--module", settings.module, "--config", settings.config];
+    output.info(`Running HyperBricks Doctor for module ${settings.module} (${settings.config}).`);
+    output.show(true);
 
-  await vscode.window.withProgress(
-    {
-      location: vscode.ProgressLocation.Notification,
-      title: `HyperBricks: checking ${settings.module}`,
-      cancellable: true
-    },
-    (_progress, cancellation) =>
-      new Promise<void>((resolve) => {
-        let settled = false;
-        let cancelled = false;
-        const finish = (): void => {
-          if (settled) {
-            return;
-          }
-          settled = true;
-          doctorProcess = undefined;
-          resolve();
-        };
+    await vscode.window.withProgress(
+      {
+        location: vscode.ProgressLocation.Notification,
+        title: `HyperBricks: checking ${settings.module}`,
+        cancellable: true
+      },
+      (_progress, cancellation) =>
+        new Promise<void>((resolve) => {
+          let settled = false;
+          let cancelled = false;
+          const finish = (): void => {
+            if (settled) {
+              return;
+            }
+            settled = true;
+            doctorProcess = undefined;
+            resolve();
+          };
 
-        const child = spawn(settings.executable, args, {
-          cwd: folder?.uri.fsPath,
-          env: process.env,
-          windowsHide: true
-        });
-        doctorProcess = child;
-        child.stdout.on("data", (chunk: Buffer) => output.append(chunk.toString("utf8")));
-        child.stderr.on("data", (chunk: Buffer) => output.append(chunk.toString("utf8")));
-        child.on("error", (error) => {
-          const message = `Could not run HyperBricks Doctor: ${error.message}`;
-          output.error(message);
-          void vscode.window.showErrorMessage(message);
-          finish();
-        });
-        child.on("close", (code, signal) => {
-          if (settled) {
-            return;
-          }
-          if (cancelled) {
-            output.info("HyperBricks module check cancelled.");
-          } else if (code === 0) {
-            output.info("HyperBricks module check completed without failing checks.");
-            void vscode.window.showInformationMessage("HyperBricks module check completed.");
-          } else {
-            const detail = signal === null ? `exit code ${code ?? "unknown"}` : `signal ${signal}`;
-            output.warn(`HyperBricks module check did not pass (${detail}).`);
-            void vscode.window.showWarningMessage(
-              "HyperBricks module check reported problems. See the HyperBricks output for details."
-            );
-          }
-          finish();
-        });
-        cancellation.onCancellationRequested(() => {
-          cancelled = true;
-          child.kill();
-        });
-      })
-  );
+          const child = spawn(executable, args, {
+            cwd: folder?.uri.fsPath,
+            env: process.env,
+            windowsHide: true
+          });
+          doctorProcess = child;
+          child.stdout.on("data", (chunk: Buffer) => output.append(chunk.toString("utf8")));
+          child.stderr.on("data", (chunk: Buffer) => output.append(chunk.toString("utf8")));
+          child.on("error", (error) => {
+            const message = `Could not run HyperBricks Doctor: ${error.message}`;
+            output.error(message);
+            void vscode.window.showErrorMessage(message);
+            finish();
+          });
+          child.on("close", (code, signal) => {
+            if (settled) {
+              return;
+            }
+            if (cancelled) {
+              output.info("HyperBricks module check cancelled.");
+            } else if (code === 0) {
+              output.info("HyperBricks module check completed without failing checks.");
+              void vscode.window.showInformationMessage("HyperBricks module check completed.");
+            } else {
+              const detail = signal === null ? `exit code ${code ?? "unknown"}` : `signal ${signal}`;
+              output.warn(`HyperBricks module check did not pass (${detail}).`);
+              void vscode.window.showWarningMessage(
+                "HyperBricks module check reported problems. See the HyperBricks output for details."
+              );
+            }
+            finish();
+          });
+          cancellation.onCancellationRequested(() => {
+            cancelled = true;
+            child.kill();
+          });
+        })
+    );
+  } finally {
+    moduleCheckRunning = false;
+  }
+}
+
+async function selectExecutable(
+  settings: ExtensionSettings,
+  folder: vscode.WorkspaceFolder | undefined
+): Promise<string | undefined> {
+  try {
+    const resolved = await resolveExecutable(settings.executable, { cwd: folder?.uri.fsPath });
+    output.info(`Using HyperBricks executable: ${resolved.command} (${resolved.source}).`);
+    return resolved.command;
+  } catch (error: unknown) {
+    output.error(errorMessage(error));
+    void vscode.window.showErrorMessage(
+      "HyperBricks executable not found. Install HyperBricks or set its absolute path in hyperbricks.executable.",
+      "Open Settings", "Show Output"
+    ).then((choice) => {
+      if (choice === "Open Settings") {
+        void vscode.commands.executeCommand("workbench.action.openSettings", "hyperbricks.executable");
+      } else if (choice === "Show Output") {
+        output.show(true);
+      }
+    });
+    return undefined;
+  }
 }
 
 async function openRuntimeErrors(): Promise<void> {

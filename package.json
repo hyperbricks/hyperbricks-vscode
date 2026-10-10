@@ -152,7 +152,7 @@
           "type": "string",
           "default": "hyperbricks",
           "scope": "machine-overridable",
-          "markdownDescription": "Path to the HyperBricks executable. It must provide the `language-server --stdio` command."
+          "markdownDescription": "Absolute path or command name of the HyperBricks executable. The default `hyperbricks` searches VS Code's PATH, then the Go installation directory (GOBIN or GOPATH/bin, default ~/go/bin). An explicit path or custom command never falls back to another installation. It must provide `language-server --stdio`."
         },
         "hyperbricks.module": {
           "type": "string",
